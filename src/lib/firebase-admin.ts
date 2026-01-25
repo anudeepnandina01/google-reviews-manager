@@ -18,7 +18,9 @@ function initializeFirebaseAdmin(): App {
   
   if (serviceAccount) {
     try {
+      console.log("Initializing Firebase Admin with service account...");
       const credentials = JSON.parse(serviceAccount);
+      console.log("Service account project_id:", credentials.project_id);
       return initializeApp({
         credential: cert(credentials),
         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -26,6 +28,8 @@ function initializeFirebaseAdmin(): App {
     } catch (error) {
       console.error("Failed to parse Firebase service account:", error);
     }
+  } else {
+    console.log("No FIREBASE_SERVICE_ACCOUNT_KEY found, using fallback");
   }
 
   // Fallback: Initialize without credentials (works in Google Cloud environments)
