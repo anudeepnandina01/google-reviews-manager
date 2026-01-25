@@ -6,12 +6,12 @@ import { getUserBusinessLocations, getUserToken, refreshTokenIfNeeded } from "@/
 export async function GET() {
   const session = await getSession();
   
-  if (!session?.user?.id) {
+  if (!session?.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
   try {
-    const token = await getUserToken(session.user.id);
+    const token = await getUserToken(session.userId);
     
     if (!token) {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function GET() {
       );
     }
     
-    const data = await getUserBusinessLocations(session.user.id);
+    const data = await getUserBusinessLocations(session.userId);
     
     return NextResponse.json(data);
   } catch (error) {
