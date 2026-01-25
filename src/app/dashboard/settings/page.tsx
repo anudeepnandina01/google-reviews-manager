@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -18,7 +18,26 @@ interface GoogleBusinessStatus {
   tokenExpiresAt?: string;
 }
 
+function SettingsLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="text-center animate-fade-in">
+        <div className="w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-white/60 text-lg">Loading settings...</p>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<SettingsLoadingFallback />}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
