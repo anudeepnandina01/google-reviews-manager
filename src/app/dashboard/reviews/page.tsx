@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -25,7 +25,26 @@ interface Review {
   } | null;
 }
 
+function ReviewsLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="text-center animate-fade-in">
+        <div className="w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-white/60 text-lg">Loading reviews...</p>
+      </div>
+    </div>
+  );
+}
+
 export default function ReviewsPage() {
+  return (
+    <Suspense fallback={<ReviewsLoadingFallback />}>
+      <ReviewsContent />
+    </Suspense>
+  );
+}
+
+function ReviewsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const businessId = searchParams.get("businessId");
