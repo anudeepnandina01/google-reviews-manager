@@ -25,9 +25,15 @@ export default function SignIn() {
       if (response.ok) {
         window.location.href = "/dashboard";
         return true;
+      } else {
+        const data = await response.json();
+        console.error("Session API error:", response.status, data);
+        setError(data.error || "Failed to create session. Please try again.");
+        return false;
       }
     } catch (err) {
       console.error("Session creation error:", err);
+      setError("Network error. Please check your connection.");
     }
     return false;
   }, []);
@@ -63,7 +69,7 @@ export default function SignIn() {
         const idToken = await result.user.getIdToken();
         const success = await createSession(idToken);
         if (!success) {
-          setError("Failed to create session. Please try again.");
+          // Error already set by createSession
           setSubmitting(false);
         }
       }
@@ -103,7 +109,7 @@ export default function SignIn() {
         const idToken = await result.user.getIdToken();
         const success = await createSession(idToken);
         if (!success) {
-          setError("Failed to create session. Please try again.");
+          // Error already set by createSession
           setSubmitting(false);
         }
       }
