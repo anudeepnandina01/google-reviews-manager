@@ -4,5 +4,6 @@ dist
 .env
 .env.local
 .env.*.local
+vercel.env
 *.log
 .DS_Store
