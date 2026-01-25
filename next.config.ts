@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["@prisma/client"],
   },
+  // Required for Prisma on Vercel serverless
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./node_modules/.prisma/**/*"],
+  },
 };
 
 export default nextConfig;
