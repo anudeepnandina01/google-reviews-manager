@@ -1,0 +1,106 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { createSession, clearSession } from "@/lib/session";
+import { verifyFirebaseToken } from "@/lib/firebase-admin";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+
+export async function POST(request: NextRequest) {
+  try {
+    // Rate limit: 10 auth attempts per minute per IP
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(`auth:${clientIp}`, {
+      windowMs: 60 * 1000,
+      maxRequests: 10,
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
+    const { idToken } = await request.json();
+
+    if (!idToken) {
+      return NextResponse.json(
+        { error: "ID token is required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify Firebase ID token
+    const tokenData = await verifyFirebaseToken(idToken);
+    
+    if (!tokenData || !tokenData.email) {
+      return NextResponse.json(
+        { error: "Invalid or expired token" },
+        { status: 401 }
+      );
+    }
+
+    const { email, name, picture } = tokenData;
+
+    // Find or create user in database
+    let user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      // Create new user
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: name || email.split("@")[0],
+          image: picture || null,
+        },
+      });
+    } else {
+      // Update existing user
+      user = await prisma.user.update({
+        where: { email },
+        data: {
+          name: name || user.name,
+          image: picture || user.image,
+        },
+      });
+    }
+
+    // Create signed JWT session
+    await createSession({
+      userId: user.id,
+      email: user.email!,
+      name: user.name || "",
+      image: user.image,
+    });
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.image,
+      },
+    });
+  } catch (error) {
+    console.error("Firebase auth error:", error);
+    return NextResponse.json(
+      { error: "Authentication failed" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE() {
+  try {
+    await clearSession();
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return NextResponse.json(
+      { error: "Logout failed" },
+      { status: 500 }
+    );
+  }
+}

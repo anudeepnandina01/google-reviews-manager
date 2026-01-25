@@ -1,0 +1,302 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============ AUTHENTICATION & USERS ============
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  
+  access_token       String?  
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  telegramChatId String?  // Telegram chat ID for notifications
+  telegramConnectCode String? // Temporary code for connecting Telegram
+  telegramConnectExpiry DateTime? // Expiry time for connect code
+  telegramEditingReplyId String? // Currently editing reply ID (for Telegram flow)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  businesses Business[]
+}
+
+// ============ BUSINESS STRUCTURE ============
+
+model Business {
+  id        String    @id @default(cuid())
+  name      String
+  userId    String
+  googleAccountId String? // Google Business Profile account ID (accounts/XXXXX)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brands    Brand[]
+  reviews   Review[]
+  aiConfig  BusinessAiConfig?
+  replyExamples ReplyExample[]
+
+  @@index([userId])
+}
+
+// ============ GOOGLE BUSINESS PROFILE OAUTH ============
+
+model GoogleBusinessToken {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  accessToken   String    @db.Text
+  refreshToken  String    @db.Text
+  expiresAt     DateTime
+  scope         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+// ============ BUSINESS AI CONFIGURATION ============
+
+model BusinessAiConfig {
+  id              String    @id @default(cuid())
+  businessId      String    @unique
+  
+  // Business context
+  businessType    String?   // e.g., "restaurant", "salon", "retail store"
+  description     String?   // Brief description of the business
+  
+  // Operating hours (JSON format: {"monday": {"open": "09:00", "close": "18:00"}, ...})
+  operatingHours  String?   @db.Text
+  
+  // AI behavior customization
+  toneStyle       String    @default("professional") // professional, friendly, casual, formal
+  customInstructions String? @db.Text // Owner's specific instructions for AI
+  signatureClosing String?  // e.g., "Best, The Team at [Business]"
+  
+  // Response preferences
+  includeContactInfo Boolean @default(false)
+  contactPhone      String?
+  contactEmail      String?
+  includePromotion  Boolean @default(false)
+  promotionText     String? // Current promotion to mention
+  
+  // Learning settings
+  learnFromReplies  Boolean @default(true) // Learn from owner's edits
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+// Store approved/edited replies for AI learning
+model ReplyExample {
+  id            String    @id @default(cuid())
+  businessId    String
+  
+  // Original review context
+  reviewRating  Int       // 1-5 stars
+  reviewText    String    @db.Text
+  
+  // What the owner approved/edited
+  finalReply    String    @db.Text
+  wasEdited     Boolean   @default(false) // true if owner edited the AI suggestion
+  
+  createdAt     DateTime  @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([reviewRating])
+}
+
+model Brand {
+  id         String    @id @default(cuid())
+  name       String
+  businessId String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  locations Location[]
+
+  @@index([businessId])
+}
+
+model Location {
+  id              String    @id @default(cuid())
+  name            String
+  address         String?
+  brandId         String
+  googlePlaceId   String?
+  googleLocationId String?  // Google Business Profile location ID (locations/XXXXX)
+  lastFetchedAt   DateTime?
+  fetchLockUntil  DateTime? @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  brand   Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  reviews Review[]
+
+  @@index([brandId])
+  @@index([googlePlaceId])
+  @@index([googleLocationId])
+}
+
+// ============ REVIEWS ============
+
+model Review {
+  id             String    @id @default(cuid())
+  externalId     String    @unique
+  rating         Int
+  text           String    
+  authorName     String
+  authorEmail    String?
+  authorPhotoUrl String?
+  businessId     String
+  locationId     String
+  source         String    @default("GOOGLE_PLACES") // GOOGLE_PLACES, GOOGLE_BUSINESS, MANUAL
+  reviewedAt     DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location    Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  aiReply     AiReply?
+  notifications Notification[]
+
+  @@index([businessId])
+  @@index([locationId])
+  @@index([externalId])
+  @@index([source])
+}
+
+// ============ AI REPLY SYSTEM ============
+
+enum AiReplyStatus {
+  PENDING_APPROVAL
+  APPROVED
+  SKIPPED
+  SENT
+}
+
+model AiReply {
+  id          String        @id @default(cuid())
+  reviewId    String        @unique
+  suggestedText String       
+  status      AiReplyStatus @default(PENDING_APPROVAL)
+  sentText    String?       
+  approvedAt  DateTime?
+  sentAt      DateTime?
+  skippedAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([status])
+}
+
+// ============ NOTIFICATIONS ============
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  DELIVERED
+}
+
+model Notification {
+  id          String               @id @default(cuid())
+  reviewId    String
+  recipientPhone String
+  status      NotificationStatus   @default(PENDING)
+  messageBody String               
+  retryCount  Int                  @default(0)
+  lastRetryAt DateTime?
+  sentAt      DateTime?
+  failureReason String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============ AUDIT LOGS ============
+
+enum EventType {
+  REVIEW_CREATED
+  AI_REPLY_GENERATED
+  REPLY_APPROVED
+  REPLY_SKIPPED
+  REPLY_SENT
+  NOTIFICATION_SENT
+  NOTIFICATION_FAILED
+  REPLY_APPROVED_VIA_TELEGRAM
+  REPLY_EDITED_VIA_TELEGRAM
+  REPLY_SKIPPED_VIA_TELEGRAM
+}
+
+model AuditLog {
+  id        String    @id @default(cuid())
+  event     EventType
+  entityId  String
+  details   String    
+  createdAt DateTime  @default(now())
+
+  @@index([event])
+  @@index([entityId])
+  @@index([createdAt])
+}
