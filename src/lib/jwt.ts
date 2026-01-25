@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-in-production";
 
@@ -13,7 +13,8 @@ export interface SessionPayload {
  * Sign a session payload into a JWT token
  */
 export function signToken(payload: SessionPayload, expiresIn: string = "7d"): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  const options: SignOptions = { expiresIn: expiresIn as jwt.SignOptions["expiresIn"] };
+  return jwt.sign(payload as object, JWT_SECRET, options);
 }
 
 /**
