@@ -183,45 +183,53 @@ export default function Dashboard() {
 
         {/* Stats Cards - Horizontal Layout */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8 animate-slide-up">
-          <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm rounded-xl p-3 border border-blue-500/20" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '32px', height: '32px', minWidth: '32px', flexShrink: 0 }} className="bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <svg style={{ width: '16px', height: '16px' }} className="text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
+          <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm rounded-xl p-3 border border-blue-500/20">
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <div style={{ width: '32px', height: '32px', minWidth: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderRadius: '8px' }}>
+                <svg style={{ width: '16px', height: '16px', display: 'block' }} className="text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', whiteSpace: 'nowrap' }}>Businesses</span>
+              <span style={{ color: 'white', fontWeight: 'bold', marginLeft: 'auto', fontSize: '16px' }}>{businesses.length}</span>
             </div>
-            <span className="text-white/70 text-xs">Businesses</span>
-            <span className="text-white font-bold" style={{ marginLeft: 'auto' }}>{businesses.length}</span>
           </div>
 
-          <div className="bg-gradient-to-br from-violet-500/20 to-violet-600/10 backdrop-blur-sm rounded-xl p-3 border border-violet-500/20" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '32px', height: '32px', minWidth: '32px', flexShrink: 0 }} className="bg-violet-500/20 rounded-lg flex items-center justify-center">
-              <svg style={{ width: '16px', height: '16px' }} className="text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
+          <div className="bg-gradient-to-br from-violet-500/20 to-violet-600/10 backdrop-blur-sm rounded-xl p-3 border border-violet-500/20">
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <div style={{ width: '32px', height: '32px', minWidth: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: 'rgba(139, 92, 246, 0.2)', borderRadius: '8px' }}>
+                <svg style={{ width: '16px', height: '16px', display: 'block' }} className="text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+              </div>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', whiteSpace: 'nowrap' }}>Brands</span>
+              <span style={{ color: 'white', fontWeight: 'bold', marginLeft: 'auto', fontSize: '16px' }}>{totalBrands}</span>
             </div>
-            <span className="text-white/70 text-xs">Brands</span>
-            <span className="text-white font-bold" style={{ marginLeft: 'auto' }}>{totalBrands}</span>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur-sm rounded-xl p-3 border border-emerald-500/20" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '32px', height: '32px', minWidth: '32px', flexShrink: 0 }} className="bg-emerald-500/20 rounded-lg flex items-center justify-center">
-              <svg style={{ width: '16px', height: '16px' }} className="text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+          <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur-sm rounded-xl p-3 border border-emerald-500/20">
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <div style={{ width: '32px', height: '32px', minWidth: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: 'rgba(16, 185, 129, 0.2)', borderRadius: '8px' }}>
+                <svg style={{ width: '16px', height: '16px', display: 'block' }} className="text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', whiteSpace: 'nowrap' }}>Locations</span>
+              <span style={{ color: 'white', fontWeight: 'bold', marginLeft: 'auto', fontSize: '16px' }}>{totalLocations}</span>
             </div>
-            <span className="text-white/70 text-xs">Locations</span>
-            <span className="text-white font-bold" style={{ marginLeft: 'auto' }}>{totalLocations}</span>
           </div>
 
-          <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur-sm rounded-xl p-3 border border-amber-500/20" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '32px', height: '32px', minWidth: '32px', flexShrink: 0 }} className="bg-amber-500/20 rounded-lg flex items-center justify-center">
-              <svg style={{ width: '16px', height: '16px' }} className="text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
+          <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 backdrop-blur-sm rounded-xl p-3 border border-amber-500/20">
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <div style={{ width: '32px', height: '32px', minWidth: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: 'rgba(245, 158, 11, 0.2)', borderRadius: '8px' }}>
+                <svg style={{ width: '16px', height: '16px', display: 'block' }} className="text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', whiteSpace: 'nowrap' }}>Reviews</span>
+              <span style={{ color: 'white', fontWeight: 'bold', marginLeft: 'auto', fontSize: '16px' }}>0</span>
             </div>
-            <span className="text-white/70 text-xs">Reviews</span>
-            <span className="text-white font-bold" style={{ marginLeft: 'auto' }}>0</span>
           </div>
         </div>
 
@@ -337,52 +345,58 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
               href="/dashboard/settings"
-              className="group flex flex-row items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+              className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
             >
-              <div className="w-10 h-10 bg-violet-500/20 rounded-lg flex items-center justify-center group-hover:bg-violet-500/30 transition flex-shrink-0">
-                <svg className="w-5 h-5 text-violet-400" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '40px', height: '40px', minWidth: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: 'rgba(139, 92, 246, 0.2)', borderRadius: '8px' }} className="group-hover:bg-violet-500/30 transition">
+                  <svg style={{ width: '20px', height: '20px', display: 'block' }} className="text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <span style={{ color: 'white', fontWeight: 500, fontSize: '14px' }}>Settings</span>
               </div>
-              <span className="text-white font-medium text-sm">Settings</span>
             </Link>
 
             {businesses.length > 0 && (
               <Link
                 href={`/dashboard/businesses/${businesses[0].id}/ai-config`}
-                className="group flex flex-row items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+                className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
               >
-                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:bg-blue-500/30 transition flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-400" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', minWidth: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderRadius: '8px' }} className="group-hover:bg-blue-500/30 transition">
+                    <svg style={{ width: '20px', height: '20px', display: 'block' }} className="text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <span style={{ color: 'white', fontWeight: 500, fontSize: '14px' }}>AI Settings</span>
                 </div>
-                <span className="text-white font-medium text-sm">AI Settings</span>
               </Link>
             )}
 
             <Link
               href="/dashboard/settings"
-              className="group flex flex-row items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+              className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
             >
-              <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:bg-emerald-500/30 transition flex-shrink-0">
-                <svg className="w-5 h-5 text-emerald-400" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                </svg>
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '40px', height: '40px', minWidth: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: 'rgba(16, 185, 129, 0.2)', borderRadius: '8px' }} className="group-hover:bg-emerald-500/30 transition">
+                  <svg style={{ width: '20px', height: '20px', display: 'block' }} className="text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                  </svg>
+                </div>
+                <span style={{ color: 'white', fontWeight: 500, fontSize: '14px' }}>Telegram</span>
               </div>
-              <span className="text-white font-medium text-sm">Telegram</span>
             </Link>
 
-            <div
-              className="group flex flex-row items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 cursor-not-allowed opacity-60"
-            >
-              <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-amber-400" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 cursor-not-allowed opacity-60">
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '40px', height: '40px', minWidth: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, backgroundColor: 'rgba(245, 158, 11, 0.2)', borderRadius: '8px' }}>
+                  <svg style={{ width: '20px', height: '20px', display: 'block' }} className="text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <span style={{ color: 'white', fontWeight: 500, fontSize: '14px' }}>Analytics</span>
               </div>
-              <span className="text-white font-medium text-sm">Analytics</span>
             </div>
           </div>
         </div>
