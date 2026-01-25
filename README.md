@@ -295,3 +295,5 @@ For issues or questions, please create an issue in the repository.
 ---
 
 **Built with** ❤️ using Next.js, Prisma, PostgreSQL, OpenAI, and WhatsApp Business API
+#   D e p l o y e d   o n   V e r c e l  
+ 
