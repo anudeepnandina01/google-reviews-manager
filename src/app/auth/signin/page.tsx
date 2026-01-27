@@ -148,16 +148,29 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 px-4 py-8">
+      {/* Back to Home Link */}
+      <div className="w-full max-w-md mb-6">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm"
+        >
+          <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Home
+        </Link>
+      </div>
+
       {/* Login Form */}
-      <div className="w-full max-w-md p-6">
+      <div className="w-full max-w-md">
         <div className="w-full">
           {/* Login Card */}
-          <div className="bg-white rounded-3xl shadow-2xl p-8 lg:p-10">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 lg:p-10">
             {/* Header */}
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">Login</h2>
-              <p className="text-gray-500">Welcome back! Please login to your account</p>
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Login</h2>
+              <p className="text-gray-500 text-sm sm:text-base">Welcome back! Please login to your account</p>
             </div>
 
             {/* Error Message */}

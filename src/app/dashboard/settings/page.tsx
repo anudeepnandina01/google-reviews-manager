@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { DashboardLayout } from "@/components/layout";
 
 interface TelegramStatus {
   connected: boolean;
@@ -20,10 +20,10 @@ interface GoogleBusinessStatus {
 
 function SettingsLoadingFallback() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+    <div className="flex items-center justify-center min-h-[60vh]">
       <div className="text-center animate-fade-in">
-        <div className="w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-white/60 text-lg">Loading settings...</p>
+        <div className="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-white/60">Loading settings...</p>
       </div>
     </div>
   );
@@ -31,9 +31,11 @@ function SettingsLoadingFallback() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<SettingsLoadingFallback />}>
-      <SettingsContent />
-    </Suspense>
+    <DashboardLayout>
+      <Suspense fallback={<SettingsLoadingFallback />}>
+        <SettingsContent />
+      </Suspense>
+    </DashboardLayout>
   );
 }
 
@@ -242,10 +244,10 @@ function SettingsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center animate-fade-in">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white/60 text-lg">Loading settings...</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white/60">Loading settings...</p>
         </div>
       </div>
     );
@@ -254,38 +256,12 @@ function SettingsContent() {
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "your_bot";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="bg-slate-800/50 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link 
-                href="/dashboard" 
-                className="flex items-center gap-2 text-white/70 hover:text-white transition-colors"
-              >
-                <svg className="w-5 h-5 flex-shrink-0" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                <span className="hidden sm:inline">Back to Dashboard</span>
-              </Link>
-            </div>
-            <h1 className="text-xl font-bold text-white">Settings</h1>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-violet-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Title */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-white/60">Manage your account and notification preferences</p>
-        </div>
+    <div className="space-y-6">
+      {/* Page Title */}
+      <div className="animate-fade-in">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Settings</h1>
+        <p className="text-white/60">Manage your account and notification preferences</p>
+      </div>
 
         {/* Telegram Notifications Section */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-6 animate-slide-up">
@@ -605,7 +581,7 @@ function SettingsContent() {
         </div>
 
         {/* Danger Zone */}
-        <div className="bg-red-500/5 backdrop-blur-sm border border-red-500/20 rounded-2xl p-6 mt-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+        <div className="bg-red-500/5 backdrop-blur-sm border border-red-500/20 rounded-2xl p-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
               <svg className="w-5 h-5 text-red-400 flex-shrink-0" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -627,7 +603,6 @@ function SettingsContent() {
             Delete Account
           </button>
         </div>
-      </main>
-    </div>
+      </div>
   );
 }

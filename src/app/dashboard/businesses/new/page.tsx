@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { DashboardLayout } from "@/components/layout";
 
 export default function CreateBusiness() {
   const router = useRouter();
@@ -59,28 +59,8 @@ export default function CreateBusiness() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="bg-slate-800/50 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link 
-              href="/dashboard" 
-              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors"
-            >
-              <svg className="w-5 h-5 flex-shrink-0" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              <span className="hidden sm:inline">Back to Dashboard</span>
-            </Link>
-            <h1 className="text-xl font-bold text-white">Create Business</h1>
-            <div className="w-20"></div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DashboardLayout>
+      <div className="max-w-2xl mx-auto">
         {/* Page Title */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
@@ -88,11 +68,11 @@ export default function CreateBusiness() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Create New Business</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Create New Business</h1>
           <p className="text-white/60">Set up your business to start managing reviews</p>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 animate-slide-up">
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-8 animate-slide-up">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4 animate-scale-in">
@@ -233,7 +213,7 @@ export default function CreateBusiness() {
             </div>
           </form>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

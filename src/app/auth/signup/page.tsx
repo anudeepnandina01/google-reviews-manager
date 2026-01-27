@@ -257,7 +257,20 @@ export default function SignUp() {
       </div>
 
       {/* Right Side - Sign Up Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 p-6 lg:p-12 overflow-y-auto">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center bg-gray-50 p-4 sm:p-6 lg:p-12 overflow-y-auto">
+        {/* Back to Home Link - Mobile */}
+        <div className="w-full max-w-md mb-4 lg:hidden">
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
+          >
+            <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Home
+          </Link>
+        </div>
+
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-6">
@@ -270,7 +283,7 @@ export default function SignUp() {
           </div>
 
           {/* Sign Up Card */}
-          <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 lg:p-10">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-gray-200/50 p-6 sm:p-8 lg:p-10">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Create Account</h2>
               <p className="text-gray-500">Start your free trial today</p>
