@@ -4,6 +4,8 @@ import { createSession, clearSession } from "@/lib/session";
 import { verifyFirebaseToken } from "@/lib/firebase-admin";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
+const isDev = process.env.NODE_ENV === "development";
+
 export async function POST(request: NextRequest) {
   try {
     // Rate limit: 10 auth attempts per minute per IP
@@ -42,29 +44,54 @@ export async function POST(request: NextRequest) {
 
     const { email, name, picture } = tokenData;
 
-    // Find or create user in database
-    let user = await prisma.user.findUnique({
-      where: { email },
-    });
+    // Try to find or create user in database
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email },
+      });
 
-    if (!user) {
-      // Create new user
-      user = await prisma.user.create({
-        data: {
-          email,
+      if (!user) {
+        // Create new user
+        user = await prisma.user.create({
+          data: {
+            email,
+            name: name || email.split("@")[0],
+            image: picture || null,
+          },
+        });
+      } else {
+        // Update existing user
+        user = await prisma.user.update({
+          where: { email },
+          data: {
+            name: name || user.name,
+            image: picture || user.image,
+          },
+        });
+      }
+    } catch (dbError) {
+      // In development, if database is unreachable, create a mock session
+      if (isDev) {
+        console.warn("Database unreachable in dev mode, creating mock session for:", email);
+        await createSession({
+          userId: `dev-${email.replace(/[^a-z0-9]/gi, "")}`,
+          email: email,
           name: name || email.split("@")[0],
           image: picture || null,
-        },
-      });
-    } else {
-      // Update existing user
-      user = await prisma.user.update({
-        where: { email },
-        data: {
-          name: name || user.name,
-          image: picture || user.image,
-        },
-      });
+        });
+        return NextResponse.json({
+          success: true,
+          user: {
+            id: `dev-${email.replace(/[^a-z0-9]/gi, "")}`,
+            email,
+            name: name || email.split("@")[0],
+            image: picture || null,
+          },
+          warning: "Running in dev mode without database connection",
+        });
+      }
+      throw dbError;
     }
 
     // Create signed JWT session

@@ -15,50 +15,51 @@
   :root {
     /* ============================================
        THEME COLORS - Edit these to change palette
+       Format: R G B (space-separated for Tailwind alpha support)
        ============================================ */
     
     /* Primary Brand Color (Violet/Purple) */
-    --color-primary-50: 245 243 255;   /* #f5f3ff */
-    --color-primary-100: 237 233 254;  /* #ede9fe */
-    --color-primary-200: 221 214 254;  /* #ddd6fe */
-    --color-primary-300: 196 181 253;  /* #c4b5fd */
-    --color-primary-400: 167 139 250;  /* #a78bfa */
-    --color-primary-500: 139 92 246;   /* #8b5cf6 - Main brand color */
-    --color-primary-600: 124 58 237;   /* #7c3aed */
-    --color-primary-700: 109 40 217;   /* #6d28d9 */
-    --color-primary-800: 91 33 182;    /* #5b21b6 */
-    --color-primary-900: 76 29 149;    /* #4c1d95 */
+    --color-primary-50: 245 243 255;
+    --color-primary-100: 237 233 254;
+    --color-primary-200: 221 214 254;
+    --color-primary-300: 196 181 253;
+    --color-primary-400: 167 139 250;
+    --color-primary-500: 139 92 246;
+    --color-primary-600: 124 58 237;
+    --color-primary-700: 109 40 217;
+    --color-primary-800: 91 33 182;
+    --color-primary-900: 76 29 149;
     
     /* Secondary Color (Slate - for backgrounds) */
-    --color-secondary-50: 248 250 252;  /* #f8fafc */
-    --color-secondary-100: 241 245 249; /* #f1f5f9 */
-    --color-secondary-200: 226 232 240; /* #e2e8f0 */
-    --color-secondary-300: 203 213 225; /* #cbd5e1 */
-    --color-secondary-400: 148 163 184; /* #94a3b8 */
-    --color-secondary-500: 100 116 139; /* #64748b */
-    --color-secondary-600: 71 85 105;   /* #475569 */
-    --color-secondary-700: 51 65 85;    /* #334155 */
-    --color-secondary-800: 30 41 59;    /* #1e293b */
-    --color-secondary-900: 15 23 42;    /* #0f172a */
-    --color-secondary-950: 2 6 23;      /* #020617 */
+    --color-secondary-50: 248 250 252;
+    --color-secondary-100: 241 245 249;
+    --color-secondary-200: 226 232 240;
+    --color-secondary-300: 203 213 225;
+    --color-secondary-400: 148 163 184;
+    --color-secondary-500: 100 116 139;
+    --color-secondary-600: 71 85 105;
+    --color-secondary-700: 51 65 85;
+    --color-secondary-800: 30 41 59;
+    --color-secondary-900: 15 23 42;
+    --color-secondary-950: 2 6 23;
     
     /* Accent Color (Blue - for links, CTAs) */
-    --color-accent-400: 96 165 250;    /* #60a5fa */
-    --color-accent-500: 59 130 246;    /* #3b82f6 */
-    --color-accent-600: 37 99 235;     /* #2563eb */
+    --color-accent-400: 96 165 250;
+    --color-accent-500: 59 130 246;
+    --color-accent-600: 37 99 235;
     
     /* Semantic Colors */
-    --color-success-400: 52 211 153;   /* #34d399 */
-    --color-success-500: 16 185 129;   /* #10b981 */
-    --color-success-600: 5 150 105;    /* #059669 */
+    --color-success-400: 52 211 153;
+    --color-success-500: 16 185 129;
+    --color-success-600: 5 150 105;
     
-    --color-warning-400: 251 191 36;   /* #fbbf24 */
-    --color-warning-500: 245 158 11;   /* #f59e0b */
-    --color-warning-600: 217 119 6;    /* #d97706 */
+    --color-warning-400: 251 191 36;
+    --color-warning-500: 245 158 11;
+    --color-warning-600: 217 119 6;
     
-    --color-error-400: 248 113 113;    /* #f87171 */
-    --color-error-500: 239 68 68;      /* #ef4444 */
-    --color-error-600: 220 38 38;      /* #dc2626 */
+    --color-error-400: 248 113 113;
+    --color-error-500: 239 68 68;
+    --color-error-600: 220 38 38;
     
     /* ============================================
        LAYOUT & SPACING

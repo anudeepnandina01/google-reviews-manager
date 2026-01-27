@@ -3,6 +3,8 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
+const isDev = process.env.NODE_ENV === "development";
+
 /**
  * GET /api/businesses
  * List all businesses for the current user
@@ -21,19 +23,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const businesses = await prisma.business.findMany({
-      where: { userId: session.userId },
-      include: {
-        brands: {
-          include: {
-            locations: true,
+    try {
+      const businesses = await prisma.business.findMany({
+        where: { userId: session.userId },
+        include: {
+          brands: {
+            include: {
+              locations: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return NextResponse.json(businesses);
+      return NextResponse.json(businesses);
+    } catch (dbError) {
+      // In dev mode, return empty array if database is unreachable
+      if (isDev) {
+        console.warn("Database unreachable in dev mode, returning empty businesses");
+        return NextResponse.json([]);
+      }
+      throw dbError;
+    }
   } catch (error) {
+    // Check if it's a database error in dev mode
+    const errorMessage = error instanceof Error ? error.message : "";
+    if (isDev && (errorMessage.includes("Can't reach database") || errorMessage.includes("P1001"))) {
+      console.warn("Database unreachable in dev mode (outer catch), returning empty businesses");
+      return NextResponse.json([]);
+    }
     console.error("Error fetching businesses:", error);
     return NextResponse.json(
       { error: "Internal server error" },
