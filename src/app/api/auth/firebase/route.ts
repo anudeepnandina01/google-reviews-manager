@@ -86,7 +86,16 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Firebase auth error:", error);
+    
+    // Check if it's a database connection error
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage.includes("Can't reach database") || errorMessage.includes("P1001")) {
+      return NextResponse.json(
+        { error: "Database connection failed. If running locally, please check your network connection to Supabase or deploy to Vercel for testing." },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { error: `Authentication failed: ${errorMessage}` },
       { status: 500 }
