@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
+const isDev = process.env.NODE_ENV === "development";
+
 // GET: Check if user has Google Business Profile connected
 export async function GET() {
   const session = await getSession();
@@ -10,28 +12,40 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
-  const token = await prisma.googleBusinessToken.findUnique({
-    where: { userId: session.userId },
-    select: {
-      id: true,
-      scope: true,
-      expiresAt: true,
-      createdAt: true,
-    },
-  });
-  
-  if (!token) {
-    return NextResponse.json({
-      connected: false,
+  try {
+    const token = await prisma.googleBusinessToken.findUnique({
+      where: { userId: session.userId },
+      select: {
+        id: true,
+        scope: true,
+        expiresAt: true,
+        createdAt: true,
+      },
     });
+    
+    if (!token) {
+      return NextResponse.json({
+        connected: false,
+      });
+    }
+    
+    return NextResponse.json({
+      connected: true,
+      scope: token.scope,
+      connectedAt: token.createdAt,
+      tokenExpiresAt: token.expiresAt,
+    });
+  } catch (dbError) {
+    // Dev mode fallback when database is unreachable
+    if (isDev) {
+      console.log("Database unreachable in dev mode, returning disconnected Google Business status");
+      return NextResponse.json({
+        connected: false,
+        devMode: true,
+      });
+    }
+    throw dbError;
   }
-  
-  return NextResponse.json({
-    connected: true,
-    scope: token.scope,
-    connectedAt: token.createdAt,
-    tokenExpiresAt: token.expiresAt,
-  });
 }
 
 // DELETE: Disconnect Google Business Profile

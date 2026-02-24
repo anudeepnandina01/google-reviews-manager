@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
+import { devTelegramState } from "@/lib/dev-telegram-state";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const isDev = process.env.NODE_ENV === "development";
 
 // Poll Telegram for messages and find matching code
 export async function POST(request: NextRequest) {
@@ -21,19 +23,39 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's pending code
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        telegramConnectCode: true,
-        telegramConnectExpiry: true,
-      },
-    });
+    let userCode: string | null = null;
+    let userExpiry: Date | null = null;
 
-    if (!user?.telegramConnectCode) {
-      return NextResponse.json({ error: "No pending code" }, { status: 400 });
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          telegramConnectCode: true,
+          telegramConnectExpiry: true,
+        },
+      });
+
+      if (!user?.telegramConnectCode) {
+        return NextResponse.json({ error: "No pending code" }, { status: 400 });
+      }
+
+      userCode = user.telegramConnectCode;
+      userExpiry = user.telegramConnectExpiry;
+    } catch (dbError) {
+      // Dev mode fallback
+      if (isDev) {
+        console.log("Database unreachable in dev mode, using mock Telegram verify");
+        if (!devTelegramState.connectCode) {
+          return NextResponse.json({ error: "No pending code" }, { status: 400 });
+        }
+        userCode = devTelegramState.connectCode;
+        userExpiry = devTelegramState.connectExpiry;
+      } else {
+        throw dbError;
+      }
     }
 
-    if (user.telegramConnectExpiry && user.telegramConnectExpiry < new Date()) {
+    if (userExpiry && userExpiry < new Date()) {
       return NextResponse.json({ error: "Code expired" }, { status: 400 });
     }
 
@@ -55,7 +77,7 @@ export async function POST(request: NextRequest) {
     // Find message with matching code
     const matchingMessage = data.result.find((update: any) => {
       const text = update.message?.text?.trim();
-      return text === user.telegramConnectCode;
+      return text === userCode;
     });
 
     if (!matchingMessage) {
@@ -68,14 +90,27 @@ export async function POST(request: NextRequest) {
     const chatId = matchingMessage.message.chat.id.toString();
 
     // Link Telegram to user
-    await prisma.user.update({
-      where: { id: session.userId },
-      data: {
-        telegramChatId: chatId,
-        telegramConnectCode: null,
-        telegramConnectExpiry: null,
-      },
-    });
+    try {
+      await prisma.user.update({
+        where: { id: session.userId },
+        data: {
+          telegramChatId: chatId,
+          telegramConnectCode: null,
+          telegramConnectExpiry: null,
+        },
+      });
+    } catch (dbError) {
+      // Dev mode fallback
+      if (isDev) {
+        console.log("Database unreachable in dev mode, storing mock Telegram chatId");
+        devTelegramState.connected = true;
+        devTelegramState.chatId = chatId;
+        devTelegramState.connectCode = null;
+        devTelegramState.connectExpiry = null;
+      } else {
+        throw dbError;
+      }
+    }
 
     // Send confirmation message to user
     await fetch(
