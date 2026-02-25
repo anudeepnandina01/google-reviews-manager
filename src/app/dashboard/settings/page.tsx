@@ -306,6 +306,8 @@ function SettingsContent() {
   };
 
   // WhatsApp Functions - OTP flow (we send code TO user's WhatsApp)
+  const [whatsappStep, setWhatsappStep] = useState<number>(1);
+  
   const startWhatsappConnection = async () => {
     if (!whatsappPhone || whatsappPhone.length < 10) {
       setWhatsappVerifyMessage("❌ Please enter a valid phone number");
@@ -321,7 +323,12 @@ function SettingsContent() {
       });
       const data = await res.json();
       if (res.ok) {
-        setWhatsappVerifyMessage("✅ Verification code sent to your WhatsApp!");
+        if (whatsappStep === 1) {
+          setWhatsappVerifyMessage("📱 Welcome message sent! Reply 'hi' to that WhatsApp message, then click 'Send Code' again.");
+          setWhatsappStep(2);
+        } else {
+          setWhatsappVerifyMessage("✅ Verification code sent to your WhatsApp!");
+        }
         await fetchWhatsappStatus();
       } else {
         setWhatsappVerifyMessage("❌ " + (data.error || "Failed to send code"));
@@ -676,9 +683,21 @@ function SettingsContent() {
           ) : (
             /* Not Connected - Enter Phone Number */
             <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
-              <p className="text-white/60 text-sm mb-5">
+              <p className="text-white/60 text-sm mb-4">
                 Connect your WhatsApp to receive instant notifications when customers leave reviews. You&apos;ll get AI-generated reply suggestions directly in your WhatsApp!
               </p>
+              
+              {/* Step-by-step instructions */}
+              <div className="bg-slate-700/50 border border-white/10 rounded-lg p-4 mb-5">
+                <p className="text-white/80 text-sm font-medium mb-3">How to connect:</p>
+                <ol className="text-white/60 text-sm space-y-2 list-decimal list-inside">
+                  <li>Enter your WhatsApp number below</li>
+                  <li>Click &quot;Send Code&quot; - you&apos;ll receive a welcome message</li>
+                  <li><strong className="text-amber-400">Reply &quot;hi&quot;</strong> to that message</li>
+                  <li>Click &quot;Send Code&quot; again to get your OTP</li>
+                  <li>Enter the 6-digit code to verify</li>
+                </ol>
+              </div>
               
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <input
