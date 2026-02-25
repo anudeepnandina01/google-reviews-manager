@@ -169,8 +169,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * Send OTP via WhatsApp Business API
- * Uses hello_world template first (required to initiate conversation),
- * then sends the actual OTP as a text message
+ * Uses a custom authentication template with OTP code as parameter
  */
 async function sendWhatsAppOTP(phone: string, code: string): Promise<boolean> {
   const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -184,8 +183,95 @@ async function sendWhatsAppOTP(phone: string, code: string): Promise<boolean> {
   const phoneNumber = phone.replace("+", "");
 
   try {
-    // First, send template message to initiate conversation (required by WhatsApp Business API)
-    const templateResponse = await fetch(
+    // Use custom OTP template with the code as a parameter
+    // Template name: "review_alerts_otp" - must be created in WhatsApp Manager
+    // Fallback to hello_world if custom template fails
+    
+    // Try custom OTP template first
+    let response = await fetch(
+      `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: phoneNumber,
+          type: "template",
+          template: {
+            name: "review_alerts_otp",
+            language: { code: "en" },
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: code }
+                ]
+              },
+              {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+                parameters: [
+                  { type: "text", text: code }
+                ]
+              }
+            ]
+          },
+        }),
+      }
+    );
+
+    if (response.ok) {
+      console.log(`[WhatsApp] OTP template sent to ${phone}`);
+      return true;
+    }
+
+    // If custom template fails, try the simple text-only template
+    console.log(`[WhatsApp] Custom template failed, trying simple template...`);
+    
+    response = await fetch(
+      `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: phoneNumber,
+          type: "template",
+          template: {
+            name: "review_otp_simple",
+            language: { code: "en" },
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  { type: "text", text: code }
+                ]
+              }
+            ]
+          },
+        }),
+      }
+    );
+
+    if (response.ok) {
+      console.log(`[WhatsApp] Simple OTP template sent to ${phone}`);
+      return true;
+    }
+
+    // Last resort: hello_world + text (requires user reply)
+    console.log(`[WhatsApp] Templates failed, using hello_world fallback...`);
+    const error = await response.json();
+    console.error("WhatsApp template error:", error);
+    
+    // Send hello_world as last resort
+    await fetch(
       `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
       {
         method: "POST",
@@ -205,19 +291,10 @@ async function sendWhatsAppOTP(phone: string, code: string): Promise<boolean> {
       }
     );
 
-    if (!templateResponse.ok) {
-      const error = await templateResponse.json();
-      console.error("WhatsApp template API error:", error);
-      return false;
-    }
-
-    console.log(`[WhatsApp] Template sent to ${phone}, now sending OTP...`);
-
-    // Small delay to ensure conversation is open
+    // Try text message (works if conversation already open)
     await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Now send the actual OTP as a text message (conversation window is now open)
-    const otpResponse = await fetch(
+    
+    await fetch(
       `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
       {
         method: "POST",
@@ -230,20 +307,12 @@ async function sendWhatsAppOTP(phone: string, code: string): Promise<boolean> {
           to: phoneNumber,
           type: "text",
           text: {
-            body: `🔐 Your Review Alerts verification code is: *${code}*\n\nThis code expires in 10 minutes.\n\nIf you didn't request this, please ignore this message.`,
+            body: `🔐 Your Review Alerts verification code is: *${code}*\n\nThis code expires in 10 minutes.`,
           },
         }),
       }
     );
 
-    if (!otpResponse.ok) {
-      const error = await otpResponse.json();
-      console.error("WhatsApp OTP API error:", error);
-      // Template was sent, so partial success - user will at least know we tried
-      return true;
-    }
-
-    console.log(`[WhatsApp] OTP sent to ${phone}`);
     return true;
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
