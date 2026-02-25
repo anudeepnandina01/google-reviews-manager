@@ -90,16 +90,68 @@ ${stars} (${mockReview.rating}/5)
 ---
 
 🤖 *AI Suggested Reply:*
-"${mockReview.aiReply}"
+"${mockReview.aiReply}"`;
 
----
+    // Try to send interactive message with buttons (works when conversation window is open)
+    const interactiveResponse = await fetch(
+      `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: phoneNumber,
+          type: "interactive",
+          interactive: {
+            type: "button",
+            body: {
+              text: message,
+            },
+            footer: {
+              text: "Test notification from Review Alerts",
+            },
+            action: {
+              buttons: [
+                {
+                  type: "reply",
+                  reply: {
+                    id: "approve_reply",
+                    title: "✅ Approve",
+                  },
+                },
+                {
+                  type: "reply",
+                  reply: {
+                    id: "edit_reply",
+                    title: "✏️ Edit",
+                  },
+                },
+                {
+                  type: "reply",
+                  reply: {
+                    id: "skip_reply",
+                    title: "⏭️ Skip",
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      }
+    );
 
-✅ Reply *APPROVE* to post this reply
-✏️ Reply *EDIT* to modify the reply
-⏭️ Reply *SKIP* to skip this review
-
-_This is a test notification from Review Alerts_`;
-
+    // Check if interactive message was sent
+    if (interactiveResponse.ok) {
+      return NextResponse.json({ 
+        success: true, 
+        message: "Test review notification sent to WhatsApp with buttons!",
+      });
+    }
+    
+    // If interactive failed, try plain text as fallback
     const textResponse = await fetch(
       `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
       {
@@ -112,27 +164,24 @@ _This is a test notification from Review Alerts_`;
           messaging_product: "whatsapp",
           to: phoneNumber,
           type: "text",
-          text: { body: message },
+          text: { body: message + "\n\n---\n\n✅ Reply *APPROVE* to post this reply\n✏️ Reply *EDIT* to modify\n⏭️ Reply *SKIP* to skip" },
         }),
       }
     );
 
-    // Check if text message was sent
-    const textSent = textResponse.ok;
-    
-    if (textSent) {
+    if (textResponse.ok) {
       return NextResponse.json({ 
         success: true, 
         message: "Test review notification sent to WhatsApp!",
       });
-    } else {
-      // Text failed but template was sent - tell user to reply first
-      return NextResponse.json({ 
-        success: true, 
-        message: "WhatsApp notification sent! Reply 'hi' to that message, then try again to see the full review alert.",
-        partial: true,
-      });
     }
+    
+    // Both failed - template was sent, tell user to reply first
+    return NextResponse.json({ 
+      success: true, 
+      message: "WhatsApp notification sent! Reply 'hi' to that message, then try again to see the full review alert with buttons.",
+      partial: true,
+    });
 
   } catch (error) {
     console.error("Error sending WhatsApp test review:", error);
