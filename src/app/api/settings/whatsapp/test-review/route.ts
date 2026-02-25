@@ -138,13 +138,4 @@ _This is a test notification from Review Alerts_`;
     console.error("Error sending WhatsApp test review:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-} 
-      success: true, 
-      message: "Test review notification sent to WhatsApp!",
-    });
-
-  } catch (error) {
-    console.error("Error sending WhatsApp test review:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
 }
