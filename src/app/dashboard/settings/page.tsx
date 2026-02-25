@@ -271,14 +271,36 @@ function SettingsContent() {
   const sendReviewTestNotification = async () => {
     setSendingReviewTest(true);
     setReviewTestMessage(null);
+    
+    const results: string[] = [];
+    
     try {
-      const res = await fetch("/api/settings/telegram/test-review", { method: "POST" });
-      const data = await res.json();
+      // Send to WhatsApp if connected
+      if (whatsappStatus?.connected) {
+        const whatsappRes = await fetch("/api/settings/whatsapp/test-review", { method: "POST" });
+        const whatsappData = await whatsappRes.json();
+        if (whatsappData.success) {
+          results.push("✅ WhatsApp");
+        } else {
+          results.push("❌ WhatsApp: " + (whatsappData.error || "Failed"));
+        }
+      }
       
-      if (data.success) {
-        setReviewTestMessage("✅ " + data.message);
+      // Send to Telegram if connected
+      if (telegramStatus?.connected) {
+        const telegramRes = await fetch("/api/settings/telegram/test-review", { method: "POST" });
+        const telegramData = await telegramRes.json();
+        if (telegramData.success) {
+          results.push("✅ Telegram");
+        } else {
+          results.push("❌ Telegram: " + (telegramData.error || "Failed"));
+        }
+      }
+      
+      if (results.length === 0) {
+        setReviewTestMessage("❌ No notification channels connected");
       } else {
-        setReviewTestMessage("❌ " + (data.error || "Failed to send"));
+        setReviewTestMessage("Test sent: " + results.join(", "));
       }
     } catch (error) {
       console.error("Error sending review test:", error);
