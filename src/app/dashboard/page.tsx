@@ -30,7 +30,7 @@ interface User {
 }
 
 interface SetupStatus {
-  telegramConnected: boolean;
+  notificationsConnected: boolean;
   googleBusinessConnected: boolean;
   hasBusinesses: boolean;
   hasLocations: boolean;
@@ -89,7 +89,7 @@ function DashboardContent() {
     acc + (b.brands?.reduce((a, brand) => a + (brand.locations?.length || 0), 0) || 0), 0);
 
   const setupComplete = setupStatus && 
-    setupStatus.telegramConnected && 
+    setupStatus.notificationsConnected && 
     setupStatus.googleBusinessConnected && 
     setupStatus.hasBusinesses && 
     setupStatus.hasLocations;
