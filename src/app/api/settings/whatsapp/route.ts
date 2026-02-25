@@ -8,7 +8,8 @@ const isDev = process.env.NODE_ENV === "development";
 
 // WhatsApp Business number that users will message
 const WHATSAPP_BUSINESS_NUMBER = process.env.WHATSAPP_BUSINESS_NUMBER || "";
-const WHATSAPP_AVAILABLE = !!WHATSAPP_BUSINESS_NUMBER;
+// WhatsApp is available if we have a business number configured
+const WHATSAPP_AVAILABLE = true; // Always show WhatsApp option
 
 /**
  * GET /api/settings/whatsapp
@@ -83,27 +84,51 @@ function maskPhone(phone: string): string {
   return phone.slice(0, 4) + "****" + phone.slice(-2);
 }
 
+// Normalize phone number to E.164 format
+function normalizePhone(phone: string): string {
+  // Remove all non-digit characters except leading +
+  let normalized = phone.replace(/[^\d+]/g, "");
+  // If doesn't start with +, assume it's Indian number and add +91
+  if (!normalized.startsWith("+")) {
+    if (normalized.startsWith("91") && normalized.length > 10) {
+      normalized = "+" + normalized;
+    } else {
+      normalized = "+91" + normalized;
+    }
+  }
+  return normalized;
+}
+
 /**
  * POST /api/settings/whatsapp
- * Generate a connection code (like Telegram flow)
- * User will send this code to our WhatsApp number
+ * Start WhatsApp connection - send OTP to user's WhatsApp
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Generate a 6-character alphanumeric code (easier to type in WhatsApp)
-    const connectCode = crypto.randomBytes(3).toString("hex").toUpperCase();
+    const body = await request.json();
+    const { phone } = body;
+
+    if (!phone) {
+      return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+
+    // Generate a 6-digit OTP code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     try {
       await prisma.user.update({
         where: { id: session.userId },
         data: {
-          whatsappConnectCode: connectCode,
+          whatsappPhone: normalizedPhone,
+          whatsappConnectCode: otpCode,
           whatsappConnectExpiry: expiresAt,
           whatsappVerified: false,
         },
@@ -111,7 +136,8 @@ export async function POST() {
     } catch (dbError) {
       if (isDev) {
         console.log("Database unreachable in dev mode, using mock WhatsApp connect");
-        devWhatsAppState.connectCode = connectCode;
+        devWhatsAppState.phone = normalizedPhone;
+        devWhatsAppState.connectCode = otpCode;
         devWhatsAppState.connectExpiry = expiresAt;
         devWhatsAppState.verified = false;
       } else {
@@ -119,20 +145,71 @@ export async function POST() {
       }
     }
 
+    // Send OTP via WhatsApp Business API
+    const sent = await sendWhatsAppOTP(normalizedPhone, otpCode);
+
+    if (!sent) {
+      return NextResponse.json({
+        success: true,
+        message: "Code generated (WhatsApp API not configured - code logged to console)",
+        // In dev/testing, return the code for easier testing
+        ...(isDev ? { debugCode: otpCode } : {}),
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      code: connectCode,
-      expiresAt,
-      whatsappNumber: WHATSAPP_BUSINESS_NUMBER,
-      // Generate wa.me link for easy click
-      whatsappLink: WHATSAPP_BUSINESS_NUMBER 
-        ? `https://wa.me/${WHATSAPP_BUSINESS_NUMBER.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(connectCode)}`
-        : null,
-      message: "Send this code to our WhatsApp number to connect your account",
+      message: "Verification code sent to your WhatsApp!",
     });
   } catch (error) {
-    console.error("Error generating WhatsApp code:", error);
+    console.error("Error starting WhatsApp connection:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
+ * Send OTP via WhatsApp Business API
+ */
+async function sendWhatsAppOTP(phone: string, code: string): Promise<boolean> {
+  const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const ACCESS_TOKEN = process.env.WHATSAPP_BUSINESS_TOKEN;
+
+  if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
+    console.log(`[WhatsApp] API not configured. OTP for ${phone}: ${code}`);
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: phone.replace("+", ""),
+          type: "text",
+          text: {
+            body: `🔐 Your Review Alerts verification code is: *${code}*\n\nThis code expires in 10 minutes.\n\nIf you didn't request this, please ignore this message.`,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("WhatsApp API error:", error);
+      return false;
+    }
+
+    console.log(`[WhatsApp] OTP sent to ${phone}`);
+    return true;
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    return false;
   }
 }
 

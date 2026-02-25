@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { devWhatsAppState } from "@/lib/whatsapp-state";
@@ -7,13 +7,20 @@ const isDev = process.env.NODE_ENV === "development";
 
 /**
  * POST /api/settings/whatsapp/verify
- * Check if WhatsApp connection has been verified (user sent code via WhatsApp)
+ * Verify the OTP code sent to user's WhatsApp
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { code } = body;
+
+    if (!code) {
+      return NextResponse.json({ error: "Verification code is required" }, { status: 400 });
     }
 
     try {
@@ -23,6 +30,7 @@ export async function POST() {
           whatsappPhone: true,
           whatsappVerified: true,
           whatsappConnectCode: true,
+          whatsappConnectExpiry: true,
         },
       });
 
@@ -30,34 +38,62 @@ export async function POST() {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      // Check if user is now verified (code was sent via WhatsApp and processed)
+      // Check if already verified
       if (user.whatsappVerified && user.whatsappPhone) {
         return NextResponse.json({
           connected: true,
           verified: true,
-          message: "WhatsApp connected successfully!",
+          message: "WhatsApp already connected!",
         });
       }
 
-      // Still pending
-      if (user.whatsappConnectCode) {
+      // Check if there's a pending code
+      if (!user.whatsappConnectCode) {
         return NextResponse.json({
-          connected: false,
-          verified: false,
-          message: "Waiting for you to send the code via WhatsApp. Please send the code shown above to our WhatsApp number.",
-        });
+          error: "No pending verification. Please request a new code.",
+        }, { status: 400 });
       }
+
+      // Check if code expired
+      if (user.whatsappConnectExpiry && user.whatsappConnectExpiry < new Date()) {
+        return NextResponse.json({
+          error: "Code expired. Please request a new code.",
+        }, { status: 400 });
+      }
+
+      // Verify the code
+      if (user.whatsappConnectCode !== code) {
+        return NextResponse.json({
+          error: "Invalid code. Please check and try again.",
+        }, { status: 400 });
+      }
+
+      // Code matches! Mark as verified
+      await prisma.user.update({
+        where: { id: session.userId },
+        data: {
+          whatsappVerified: true,
+          whatsappConnectCode: null,
+          whatsappConnectExpiry: null,
+          whatsappEnabled: true,
+        },
+      });
 
       return NextResponse.json({
-        connected: false,
-        verified: false,
-        message: "No pending connection. Please click 'Connect WhatsApp' to generate a code.",
+        connected: true,
+        verified: true,
+        message: "WhatsApp connected successfully!",
       });
     } catch (dbError) {
       if (isDev) {
         console.log("Database unreachable in dev mode, using mock WhatsApp verify");
         
-        if (devWhatsAppState.verified && devWhatsAppState.phone) {
+        // Mock verification
+        if (devWhatsAppState.connectCode === code) {
+          devWhatsAppState.verified = true;
+          devWhatsAppState.connected = true;
+          devWhatsAppState.connectCode = null;
+          devWhatsAppState.connectExpiry = null;
           return NextResponse.json({
             connected: true,
             verified: true,
@@ -65,19 +101,9 @@ export async function POST() {
           });
         }
 
-        if (devWhatsAppState.connectCode) {
-          return NextResponse.json({
-            connected: false,
-            verified: false,
-            message: "Waiting for you to send the code via WhatsApp.",
-          });
-        }
-
         return NextResponse.json({
-          connected: false,
-          verified: false,
-          message: "No pending connection.",
-        });
+          error: "Invalid code",
+        }, { status: 400 });
       }
       throw dbError;
     }

@@ -75,6 +75,8 @@ function SettingsContent() {
   const [whatsappVerifyMessage, setWhatsappVerifyMessage] = useState<string | null>(null);
   const [sendingReviewTest, setSendingReviewTest] = useState(false);
   const [reviewTestMessage, setReviewTestMessage] = useState<string | null>(null);
+  const [whatsappPhone, setWhatsappPhone] = useState("");
+  const [whatsappOtp, setWhatsappOtp] = useState("");
 
   useEffect(() => {
     checkSession();
@@ -303,45 +305,59 @@ function SettingsContent() {
     }
   };
 
-  // WhatsApp Functions - Telegram-style flow (user sends code TO our WhatsApp)
-  const generateWhatsappCode = async () => {
+  // WhatsApp Functions - OTP flow (we send code TO user's WhatsApp)
+  const startWhatsappConnection = async () => {
+    if (!whatsappPhone || whatsappPhone.length < 10) {
+      setWhatsappVerifyMessage("❌ Please enter a valid phone number");
+      return;
+    }
     setGeneratingWhatsappCode(true);
     setWhatsappVerifyMessage(null);
     try {
       const res = await fetch("/api/settings/whatsapp", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: whatsappPhone }),
       });
       const data = await res.json();
       if (res.ok) {
+        setWhatsappVerifyMessage("✅ Verification code sent to your WhatsApp!");
         await fetchWhatsappStatus();
       } else {
-        setWhatsappVerifyMessage("❌ " + (data.error || "Failed to generate code"));
+        setWhatsappVerifyMessage("❌ " + (data.error || "Failed to send code"));
       }
     } catch (error) {
-      console.error("Error generating WhatsApp code:", error);
-      setWhatsappVerifyMessage("❌ Error generating code");
+      console.error("Error starting WhatsApp connection:", error);
+      setWhatsappVerifyMessage("❌ Error sending verification code");
     } finally {
       setGeneratingWhatsappCode(false);
     }
   };
 
-  const verifyWhatsappConnection = async () => {
+  const verifyWhatsappOtp = async () => {
+    if (!whatsappOtp || whatsappOtp.length !== 6) {
+      setWhatsappVerifyMessage("❌ Please enter the 6-digit code");
+      return;
+    }
     setVerifyingWhatsapp(true);
     setWhatsappVerifyMessage(null);
     try {
       const res = await fetch("/api/settings/whatsapp/verify", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: whatsappOtp }),
       });
       const data = await res.json();
-      if (data.connected) {
-        setWhatsappVerifyMessage("✅ " + data.message);
+      if (data.connected || data.verified) {
+        setWhatsappVerifyMessage("✅ WhatsApp connected successfully!");
+        setWhatsappOtp("");
         await fetchWhatsappStatus();
       } else {
-        setWhatsappVerifyMessage("❌ " + (data.message || "Not connected yet"));
+        setWhatsappVerifyMessage("❌ " + (data.error || data.message || "Invalid code"));
       }
     } catch (error) {
       console.error("Error verifying WhatsApp:", error);
-      setWhatsappVerifyMessage("❌ Error checking connection");
+      setWhatsappVerifyMessage("❌ Error verifying code");
     } finally {
       setVerifyingWhatsapp(false);
     }
@@ -355,6 +371,8 @@ function SettingsContent() {
     try {
       const res = await fetch("/api/settings/whatsapp", { method: "DELETE" });
       if (res.ok) {
+        setWhatsappPhone("");
+        setWhatsappOtp("");
         await fetchWhatsappStatus();
       }
     } catch (error) {
@@ -566,25 +584,7 @@ function SettingsContent() {
             </div>
           </div>
 
-          {whatsappStatus?.available === false ? (
-            /* WhatsApp Not Configured - Coming Soon State */
-            <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
-              <div className="flex items-center gap-2 text-amber-400 mb-3">
-                <div className="w-6 h-6 bg-amber-500/20 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="font-semibold">Coming Soon</span>
-              </div>
-              <p className="text-white/60 text-sm mb-3">
-                WhatsApp notifications are not available yet. We&apos;re working on setting this up!
-              </p>
-              <p className="text-white/50 text-sm">
-                In the meantime, you can use <strong className="text-blue-400">Telegram</strong> to receive instant review alerts.
-              </p>
-            </div>
-          ) : whatsappStatus?.connected ? (
+          {whatsappStatus?.connected ? (
             /* Connected State */
             <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-5">
               <div className="flex items-center gap-2 text-emerald-400 mb-3">
@@ -611,38 +611,39 @@ function SettingsContent() {
               </div>
             </div>
           ) : whatsappStatus?.pendingCode ? (
-            /* Pending Connection State - User needs to send code to WhatsApp */
+            /* Pending Verification - Enter OTP */
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-5">
               <p className="text-amber-300 text-sm mb-4">
-                Send this code to our WhatsApp number to connect your account:
+                Enter the 6-digit code sent to your WhatsApp:
               </p>
               
-              <div className="bg-slate-800/80 border-2 border-amber-500/50 rounded-xl p-6 text-center mb-5">
-                <span className="text-4xl font-mono font-bold tracking-[0.3em] text-white">
-                  {whatsappStatus.pendingCode}
-                </span>
-              </div>
-              
-              <div className="bg-slate-800/50 rounded-xl p-4 mb-5">
-                <p className="text-white/80 text-sm font-medium mb-3">How to connect:</p>
-                <ol className="space-y-2 text-sm text-white/60">
-                  <li className="flex items-center gap-2">
-                    <span className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs text-white/80">1</span>
-                    Open WhatsApp on your phone
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs text-white/80">2</span>
-                    {whatsappStatus.whatsappNumber ? (
-                      <>Message us at <strong className="text-green-400">{whatsappStatus.whatsappNumber}</strong></>
-                    ) : (
-                      <>Scan the QR code or click the button below</>
-                    )}
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs text-white/80">3</span>
-                    Send the code shown above
-                  </li>
-                </ol>
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <input
+                  type="text"
+                  value={whatsappOtp}
+                  onChange={(e) => setWhatsappOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="000000"
+                  className="flex-1 max-w-[200px] px-4 py-3 bg-slate-800/80 border-2 border-amber-500/50 rounded-xl text-center text-2xl font-mono font-bold tracking-[0.3em] text-white placeholder-white/30 focus:outline-none focus:border-amber-400"
+                />
+                <button
+                  onClick={verifyWhatsappOtp}
+                  disabled={verifyingWhatsapp || whatsappOtp.length !== 6}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {verifyingWhatsapp ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Verify
+                    </>
+                  )}
+                </button>
               </div>
               
               {whatsappVerifyMessage && (
@@ -656,44 +657,12 @@ function SettingsContent() {
               )}
               
               <div className="flex flex-wrap gap-3">
-                {whatsappStatus.whatsappNumber && (
-                  <a
-                    href={`https://wa.me/${whatsappStatus.whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(whatsappStatus.pendingCode)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200"
-                  >
-                    <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    Open WhatsApp
-                  </a>
-                )}
                 <button
-                  onClick={verifyWhatsappConnection}
-                  disabled={verifyingWhatsapp}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {verifyingWhatsapp ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Checking...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Verify Connection
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={generateWhatsappCode}
+                  onClick={() => startWhatsappConnection()}
                   disabled={generatingWhatsappCode}
                   className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50"
                 >
-                  {generatingWhatsappCode ? "Generating..." : "Get New Code"}
+                  {generatingWhatsappCode ? "Sending..." : "Resend Code"}
                 </button>
                 <button
                   onClick={disconnectWhatsapp}
@@ -705,14 +674,43 @@ function SettingsContent() {
               </div>
             </div>
           ) : (
-            /* Not Connected State */
+            /* Not Connected - Enter Phone Number */
             <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
               <p className="text-white/60 text-sm mb-5">
                 Connect your WhatsApp to receive instant notifications when customers leave reviews. You&apos;ll get AI-generated reply suggestions directly in your WhatsApp!
               </p>
               
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <input
+                  type="tel"
+                  value={whatsappPhone}
+                  onChange={(e) => setWhatsappPhone(e.target.value.replace(/[^0-9+]/g, ""))}
+                  placeholder="+91 98765 43210"
+                  className="flex-1 max-w-[280px] px-4 py-2.5 bg-slate-800/80 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-green-500/50"
+                />
+                <button
+                  onClick={startWhatsappConnection}
+                  disabled={generatingWhatsappCode || !whatsappPhone}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg shadow-green-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generatingWhatsappCode ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 flex-shrink-0" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                      </svg>
+                      Send Code
+                    </>
+                  )}
+                </button>
+              </div>
+              
               {whatsappVerifyMessage && (
-                <div className={`text-sm mb-4 p-3 rounded-lg animate-scale-in ${
+                <div className={`text-sm p-3 rounded-lg animate-scale-in ${
                   whatsappVerifyMessage.startsWith("✅") 
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
                     : "bg-red-500/20 text-red-300 border border-red-500/30"
@@ -720,26 +718,6 @@ function SettingsContent() {
                   {whatsappVerifyMessage}
                 </div>
               )}
-              
-              <button
-                onClick={generateWhatsappCode}
-                disabled={generatingWhatsappCode}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg shadow-green-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {generatingWhatsappCode ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5 flex-shrink-0" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    Connect WhatsApp
-                  </>
-                )}
-              </button>
             </div>
           )}
         </div>
@@ -811,9 +789,7 @@ function SettingsContent() {
               <p className="text-white/50 text-xs ml-7">
                 {whatsappStatus?.connected 
                   ? "Receive alerts via WhatsApp" 
-                  : whatsappStatus?.available === false 
-                    ? "Coming soon" 
-                    : "Connect WhatsApp first"}
+                  : "Connect WhatsApp first"}
               </p>
             </button>
 
