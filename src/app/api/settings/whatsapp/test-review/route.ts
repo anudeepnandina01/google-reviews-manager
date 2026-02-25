@@ -31,21 +31,11 @@ export async function POST() {
       }, { status: 400 });
     }
 
-    // Create mock review data
-    const mockReview = {
-      authorName: "Sarah Johnson",
-      rating: 5,
-      text: "Absolutely amazing experience! The team went above and beyond to help me. Highly recommend to everyone!",
-      businessName: "Your Business",
-      locationName: "Main Location",
-      aiReply: "Thank you so much, Sarah! We're delighted to hear about your wonderful experience. Your recommendation means the world to us! 🌟",
-    };
-
     // Send WhatsApp notification
     const phoneNumber = user.whatsappPhone.replace("+", "");
     
-    // First send hello_world template to initiate (if needed)
-    await fetch(
+    // First send hello_world template - this always works
+    const templateResponse = await fetch(
       `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
       {
         method: "POST",
@@ -65,10 +55,28 @@ export async function POST() {
       }
     );
 
-    // Small delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!templateResponse.ok) {
+      const error = await templateResponse.json();
+      console.error("WhatsApp template error:", error);
+      return NextResponse.json({ 
+        error: "Failed to send WhatsApp notification" 
+      }, { status: 500 });
+    }
 
-    // Send the actual review notification
+    // Small delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Try to send the actual review notification as text
+    // This will only work if the user has an open conversation window
+    const mockReview = {
+      authorName: "Sarah Johnson",
+      rating: 5,
+      text: "Absolutely amazing experience! The team went above and beyond to help me. Highly recommend to everyone!",
+      businessName: "Your Business",
+      locationName: "Main Location",
+      aiReply: "Thank you so much, Sarah! We're delighted to hear about your wonderful experience. Your recommendation means the world to us! 🌟",
+    };
+
     const stars = "⭐".repeat(mockReview.rating);
     const message = `🔔 *New Review Alert!*
 
@@ -92,7 +100,7 @@ ${stars} (${mockReview.rating}/5)
 
 _This is a test notification from Review Alerts_`;
 
-    const response = await fetch(
+    const textResponse = await fetch(
       `https://graph.facebook.com/v22.0/${PHONE_NUMBER_ID}/messages`,
       {
         method: "POST",
@@ -109,15 +117,28 @@ _This is a test notification from Review Alerts_`;
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("WhatsApp API error:", error);
+    // Check if text message was sent
+    const textSent = textResponse.ok;
+    
+    if (textSent) {
       return NextResponse.json({ 
-        error: "Failed to send WhatsApp notification" 
-      }, { status: 500 });
+        success: true, 
+        message: "Test review notification sent to WhatsApp!",
+      });
+    } else {
+      // Text failed but template was sent - tell user to reply first
+      return NextResponse.json({ 
+        success: true, 
+        message: "WhatsApp notification sent! Reply 'hi' to that message, then try again to see the full review alert.",
+        partial: true,
+      });
     }
 
-    return NextResponse.json({ 
+  } catch (error) {
+    console.error("Error sending WhatsApp test review:", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+} 
       success: true, 
       message: "Test review notification sent to WhatsApp!",
     });

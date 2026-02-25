@@ -275,38 +275,53 @@ function SettingsContent() {
     const results: string[] = [];
     
     try {
-      // Send to WhatsApp if connected
-      if (whatsappStatus?.connected) {
-        const whatsappRes = await fetch("/api/settings/whatsapp/test-review", { method: "POST" });
-        const whatsappData = await whatsappRes.json();
-        if (whatsappData.success) {
-          results.push("✅ WhatsApp");
-        } else {
-          results.push("❌ WhatsApp: " + (whatsappData.error || "Failed"));
-        }
-      }
-      
-      // Send to Telegram if connected
+      // Send to Telegram only (for Telegram section test)
       if (telegramStatus?.connected) {
         const telegramRes = await fetch("/api/settings/telegram/test-review", { method: "POST" });
         const telegramData = await telegramRes.json();
         if (telegramData.success) {
-          results.push("✅ Telegram");
+          results.push("✅ Telegram sent!");
         } else {
           results.push("❌ Telegram: " + (telegramData.error || "Failed"));
         }
+      } else {
+        results.push("❌ Telegram not connected");
       }
       
-      if (results.length === 0) {
-        setReviewTestMessage("❌ No notification channels connected");
-      } else {
-        setReviewTestMessage("Test sent: " + results.join(", "));
-      }
+      setReviewTestMessage(results.join(" | "));
     } catch (error) {
       console.error("Error sending review test:", error);
       setReviewTestMessage("❌ Error sending test review");
     } finally {
       setSendingReviewTest(false);
+    }
+  };
+
+  // WhatsApp-specific test function
+  const [sendingWhatsappTest, setSendingWhatsappTest] = useState(false);
+  const [whatsappTestMessage, setWhatsappTestMessage] = useState<string | null>(null);
+  
+  const sendWhatsappTestNotification = async () => {
+    setSendingWhatsappTest(true);
+    setWhatsappTestMessage(null);
+    
+    try {
+      const res = await fetch("/api/settings/whatsapp/test-review", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        if (data.partial) {
+          setWhatsappTestMessage("📱 " + data.message);
+        } else {
+          setWhatsappTestMessage("✅ Test review sent to WhatsApp!");
+        }
+      } else {
+        setWhatsappTestMessage("❌ " + (data.error || "Failed to send"));
+      }
+    } catch (error) {
+      console.error("Error sending WhatsApp test:", error);
+      setWhatsappTestMessage("❌ Error sending test");
+    } finally {
+      setSendingWhatsappTest(false);
     }
   };
 
@@ -629,23 +644,25 @@ function SettingsContent() {
                 Your WhatsApp is connected. You&apos;ll receive notifications for new reviews with AI-generated reply suggestions.
               </p>
               
-              {reviewTestMessage && (
+              {whatsappTestMessage && (
                 <div className={`text-sm mb-4 p-3 rounded-lg animate-scale-in ${
-                  reviewTestMessage.includes("✅") 
+                  whatsappTestMessage.includes("✅") 
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
+                    : whatsappTestMessage.includes("📱")
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                     : "bg-red-500/20 text-red-300 border border-red-500/30"
                 }`}>
-                  {reviewTestMessage}
+                  {whatsappTestMessage}
                 </div>
               )}
               
               <div className="flex flex-wrap gap-3 items-center">
                 <button
-                  onClick={sendReviewTestNotification}
-                  disabled={sendingReviewTest}
+                  onClick={sendWhatsappTestNotification}
+                  disabled={sendingWhatsappTest}
                   className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {sendingReviewTest ? (
+                  {sendingWhatsappTest ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Sending...
