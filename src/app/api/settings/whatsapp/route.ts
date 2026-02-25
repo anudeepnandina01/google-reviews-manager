@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { devWhatsAppState } from "@/lib/whatsapp-state";
 import crypto from "crypto";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -8,16 +9,6 @@ const isDev = process.env.NODE_ENV === "development";
 // WhatsApp Business number that users will message
 const WHATSAPP_BUSINESS_NUMBER = process.env.WHATSAPP_BUSINESS_NUMBER || "";
 const WHATSAPP_AVAILABLE = !!WHATSAPP_BUSINESS_NUMBER;
-
-// In-memory store for dev mode
-export const devWhatsAppState = {
-  connected: false,
-  phone: null as string | null,
-  verified: false,
-  connectCode: null as string | null,
-  connectExpiry: null as Date | null,
-  enabled: true,
-};
 
 /**
  * GET /api/settings/whatsapp

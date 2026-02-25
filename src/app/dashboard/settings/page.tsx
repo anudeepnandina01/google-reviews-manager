@@ -695,6 +695,13 @@ function SettingsContent() {
                 >
                   {generatingWhatsappCode ? "Generating..." : "Get New Code"}
                 </button>
+                <button
+                  onClick={disconnectWhatsapp}
+                  disabled={disconnectingWhatsapp}
+                  className="px-4 py-2.5 text-white/60 hover:text-white/80 hover:bg-white/10 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           ) : (

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { devWhatsAppState } from "../route";
+import { devWhatsAppState } from "@/lib/whatsapp-state";
 
 const isDev = process.env.NODE_ENV === "development";
 
