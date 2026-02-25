@@ -629,7 +629,36 @@ function SettingsContent() {
                 Your WhatsApp is connected. You&apos;ll receive notifications for new reviews with AI-generated reply suggestions.
               </p>
               
+              {reviewTestMessage && (
+                <div className={`text-sm mb-4 p-3 rounded-lg animate-scale-in ${
+                  reviewTestMessage.includes("✅") 
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
+                    : "bg-red-500/20 text-red-300 border border-red-500/30"
+                }`}>
+                  {reviewTestMessage}
+                </div>
+              )}
+              
               <div className="flex flex-wrap gap-3 items-center">
+                <button
+                  onClick={sendReviewTestNotification}
+                  disabled={sendingReviewTest}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sendingReviewTest ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      Send Test Review Alert
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={disconnectWhatsapp}
                   disabled={disconnectingWhatsapp}
