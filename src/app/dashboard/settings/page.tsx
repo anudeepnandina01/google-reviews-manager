@@ -693,8 +693,8 @@ function SettingsContent() {
                 <ol className="text-white/60 text-sm space-y-2 list-decimal list-inside">
                   <li>Enter your WhatsApp number below</li>
                   <li>Click &quot;Send Code&quot; - you&apos;ll receive a welcome message</li>
-                  <li><strong className="text-amber-400">Reply &quot;hi&quot;</strong> to that message</li>
-                  <li>Click &quot;Send Code&quot; again to get your OTP</li>
+                  <li><strong className="text-amber-400">Reply &quot;hi&quot;</strong> to that message on WhatsApp</li>
+                  <li>Click &quot;Resend Code&quot; to get your OTP</li>
                   <li>Enter the 6-digit code to verify</li>
                 </ol>
               </div>
