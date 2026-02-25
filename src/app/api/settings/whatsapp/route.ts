@@ -5,8 +5,12 @@ import crypto from "crypto";
 
 const isDev = process.env.NODE_ENV === "development";
 
+// WhatsApp Business number that users will message
+const WHATSAPP_BUSINESS_NUMBER = process.env.WHATSAPP_BUSINESS_NUMBER || "";
+const WHATSAPP_AVAILABLE = !!WHATSAPP_BUSINESS_NUMBER;
+
 // In-memory store for dev mode
-const devWhatsAppState = {
+export const devWhatsAppState = {
   connected: false,
   phone: null as string | null,
   verified: false,
@@ -52,8 +56,10 @@ export async function GET() {
         phone: user.whatsappPhone ? maskPhone(user.whatsappPhone) : null,
         verified: user.whatsappVerified,
         enabled: user.whatsappEnabled,
-        pendingCode: hasPendingCode,
+        pendingCode: hasPendingCode ? user.whatsappConnectCode : null,
         codeExpiresAt: hasPendingCode ? user.whatsappConnectExpiry : null,
+        whatsappNumber: WHATSAPP_BUSINESS_NUMBER,
+        available: WHATSAPP_AVAILABLE,
       });
     } catch (dbError) {
       if (isDev) {
@@ -67,8 +73,10 @@ export async function GET() {
           phone: devWhatsAppState.phone ? maskPhone(devWhatsAppState.phone) : null,
           verified: devWhatsAppState.verified,
           enabled: devWhatsAppState.enabled,
-          pendingCode: hasPendingCode,
+          pendingCode: hasPendingCode ? devWhatsAppState.connectCode : null,
           codeExpiresAt: hasPendingCode ? devWhatsAppState.connectExpiry : null,
+          whatsappNumber: WHATSAPP_BUSINESS_NUMBER,
+          available: WHATSAPP_AVAILABLE,
         });
       }
       throw dbError;
@@ -79,79 +87,60 @@ export async function GET() {
   }
 }
 
+function maskPhone(phone: string): string {
+  if (phone.length < 6) return phone;
+  return phone.slice(0, 4) + "****" + phone.slice(-2);
+}
+
 /**
  * POST /api/settings/whatsapp
- * Start WhatsApp connection - send OTP to provided phone
+ * Generate a connection code (like Telegram flow)
+ * User will send this code to our WhatsApp number
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await getSession();
     if (!session?.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { phone } = body;
-
-    if (!phone) {
-      return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
-    }
-
-    // Validate phone format (should start with + and contain only digits after)
-    const cleanPhone = phone.replace(/\s/g, "");
-    if (!/^\+\d{10,15}$/.test(cleanPhone)) {
-      return NextResponse.json({ 
-        error: "Invalid phone format. Use international format: +1234567890" 
-      }, { status: 400 });
-    }
-
-    // Generate a 6-digit OTP
-    const connectCode = crypto.randomInt(100000, 999999).toString();
+    // Generate a 6-character alphanumeric code (easier to type in WhatsApp)
+    const connectCode = crypto.randomBytes(3).toString("hex").toUpperCase();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     try {
       await prisma.user.update({
         where: { id: session.userId },
         data: {
-          whatsappPhone: cleanPhone,
-          whatsappVerified: false,
           whatsappConnectCode: connectCode,
           whatsappConnectExpiry: expiresAt,
+          whatsappVerified: false,
         },
       });
     } catch (dbError) {
       if (isDev) {
         console.log("Database unreachable in dev mode, using mock WhatsApp connect");
-        devWhatsAppState.phone = cleanPhone;
-        devWhatsAppState.verified = false;
         devWhatsAppState.connectCode = connectCode;
         devWhatsAppState.connectExpiry = expiresAt;
+        devWhatsAppState.verified = false;
       } else {
         throw dbError;
       }
     }
 
-    // In production, send OTP via WhatsApp
-    // For now, we'll just return success and expect manual verification
-    // TODO: Integrate with WhatsApp Business API to send OTP
-    
-    const isWhatsAppConfigured = !!(
-      process.env.WHATSAPP_PHONE_NUMBER_ID && 
-      process.env.WHATSAPP_BUSINESS_TOKEN
-    );
-
     return NextResponse.json({
       success: true,
-      phone: maskPhone(cleanPhone),
+      code: connectCode,
       expiresAt,
-      // In dev/testing, show the code. In production, it would be sent via WhatsApp
-      ...(isDev || !isWhatsAppConfigured ? { code: connectCode } : {}),
-      message: isWhatsAppConfigured 
-        ? "OTP sent to your WhatsApp" 
-        : "Enter the verification code shown below (WhatsApp API not configured)",
+      whatsappNumber: WHATSAPP_BUSINESS_NUMBER,
+      // Generate wa.me link for easy click
+      whatsappLink: WHATSAPP_BUSINESS_NUMBER 
+        ? `https://wa.me/${WHATSAPP_BUSINESS_NUMBER.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(connectCode)}`
+        : null,
+      message: "Send this code to our WhatsApp number to connect your account",
     });
   } catch (error) {
-    console.error("Error starting WhatsApp connection:", error);
+    console.error("Error generating WhatsApp code:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -181,7 +170,7 @@ export async function PUT(request: NextRequest) {
       });
     } catch (dbError) {
       if (isDev) {
-        console.log("Database unreachable in dev mode, updating mock WhatsApp enabled");
+        console.log("Database unreachable in dev mode, using mock WhatsApp update");
         devWhatsAppState.enabled = enabled;
       } else {
         throw dbError;
@@ -190,7 +179,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, enabled });
   } catch (error) {
-    console.error("Error updating WhatsApp settings:", error);
+    console.error("Error updating WhatsApp preferences:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -218,7 +207,7 @@ export async function DELETE() {
       });
     } catch (dbError) {
       if (isDev) {
-        console.log("Database unreachable in dev mode, disconnecting mock WhatsApp");
+        console.log("Database unreachable in dev mode, using mock WhatsApp disconnect");
         devWhatsAppState.connected = false;
         devWhatsAppState.phone = null;
         devWhatsAppState.verified = false;
@@ -229,15 +218,9 @@ export async function DELETE() {
       }
     }
 
-    return NextResponse.json({ success: true, message: "WhatsApp disconnected" });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error disconnecting WhatsApp:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
-
-// Helper to mask phone number for display
-function maskPhone(phone: string): string {
-  if (phone.length <= 4) return phone;
-  return phone.slice(0, -4).replace(/\d/g, "*") + phone.slice(-4);
 }
