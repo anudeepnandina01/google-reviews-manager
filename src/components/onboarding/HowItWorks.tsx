@@ -15,7 +15,7 @@ export function HowItWorks({ onClose, showCloseButton = true }: HowItWorksProps)
   const steps = [
     {
       title: "Connect Your Accounts",
-      description: "Link your Telegram to receive instant alerts and connect Google Business Profile to sync your locations automatically.",
+      description: "Link Telegram or WhatsApp to receive instant alerts and connect Google Business Profile to sync your locations automatically.",
       image: "🔗",
       color: "violet",
     },
@@ -27,13 +27,13 @@ export function HowItWorks({ onClose, showCloseButton = true }: HowItWorksProps)
     },
     {
       title: "Receive Review Alerts",
-      description: "When customers leave reviews, you'll get instant Telegram notifications with AI-generated reply suggestions.",
+      description: "When customers leave reviews, you'll get instant notifications via Telegram or WhatsApp with AI-generated reply suggestions.",
       image: "🔔",
       color: "amber",
     },
     {
       title: "Respond with One Tap",
-      description: "Review the AI-suggested reply, edit if needed, and approve to post directly to Google - all from Telegram!",
+      description: "Review the AI-suggested reply, edit if needed, and approve to post directly to Google - all from your preferred messaging app!",
       image: "✨",
       color: "emerald",
     },

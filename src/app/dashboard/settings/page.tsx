@@ -9,6 +9,15 @@ interface TelegramStatus {
   chatId: string | null;
   pendingCode: string | null;
   codeExpiresAt: string | null;
+  enabled?: boolean;
+}
+
+interface WhatsAppStatus {
+  connected: boolean;
+  phone: string | null;
+  pendingCode: string | null;
+  codeExpiresAt: string | null;
+  enabled?: boolean;
 }
 
 interface GoogleBusinessStatus {
@@ -17,6 +26,8 @@ interface GoogleBusinessStatus {
   connectedAt?: string;
   tokenExpiresAt?: string;
 }
+
+type NotificationPreference = "telegram" | "whatsapp" | "both" | "none";
 
 function SettingsLoadingFallback() {
   return (
@@ -45,21 +56,31 @@ function SettingsContent() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus | null>(null);
+  const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus | null>(null);
   const [googleBusinessStatus, setGoogleBusinessStatus] = useState<GoogleBusinessStatus | null>(null);
+  const [notificationPreference, setNotificationPreference] = useState<NotificationPreference>("both");
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [generatingWhatsappCode, setGeneratingWhatsappCode] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [disconnectingWhatsapp, setDisconnectingWhatsapp] = useState(false);
   const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
   const [syncingReviews, setSyncingReviews] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [verifyingWhatsapp, setVerifyingWhatsapp] = useState(false);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
+  const [whatsappVerifyMessage, setWhatsappVerifyMessage] = useState<string | null>(null);
   const [sendingReviewTest, setSendingReviewTest] = useState(false);
   const [reviewTestMessage, setReviewTestMessage] = useState<string | null>(null);
+  const [whatsappPhone, setWhatsappPhone] = useState("");
+  const [whatsappOtp, setWhatsappOtp] = useState("");
 
   useEffect(() => {
     checkSession();
     fetchTelegramStatus();
+    fetchWhatsappStatus();
     fetchGoogleBusinessStatus();
+    fetchNotificationPreference();
     
     // Check for success/error from OAuth callback
     const success = searchParams.get("success");
@@ -112,6 +133,45 @@ function SettingsContent() {
       }
     } catch (error) {
       console.error("Error fetching Telegram status:", error);
+    }
+  };
+
+  const fetchWhatsappStatus = async () => {
+    try {
+      const res = await fetch("/api/settings/whatsapp");
+      if (res.ok) {
+        const data = await res.json();
+        setWhatsappStatus(data);
+      }
+    } catch (error) {
+      console.error("Error fetching WhatsApp status:", error);
+    }
+  };
+
+  const fetchNotificationPreference = async () => {
+    try {
+      const res = await fetch("/api/settings/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setNotificationPreference(data.preference || "both");
+      }
+    } catch (error) {
+      console.error("Error fetching notification preference:", error);
+    }
+  };
+
+  const updateNotificationPreference = async (pref: NotificationPreference) => {
+    try {
+      const res = await fetch("/api/settings/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preference: pref }),
+      });
+      if (res.ok) {
+        setNotificationPreference(pref);
+      }
+    } catch (error) {
+      console.error("Error updating preference:", error);
     }
   };
 
@@ -239,6 +299,82 @@ function SettingsContent() {
       console.error("Error disconnecting:", error);
     } finally {
       setDisconnecting(false);
+    }
+  };
+
+  // WhatsApp Functions
+  const startWhatsappConnection = async () => {
+    if (!whatsappPhone || whatsappPhone.length < 10) {
+      setWhatsappVerifyMessage("❌ Please enter a valid phone number");
+      return;
+    }
+    setGeneratingWhatsappCode(true);
+    setWhatsappVerifyMessage(null);
+    try {
+      const res = await fetch("/api/settings/whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: whatsappPhone }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setWhatsappVerifyMessage("✅ " + data.message);
+        await fetchWhatsappStatus();
+      } else {
+        setWhatsappVerifyMessage("❌ " + (data.error || "Failed to send code"));
+      }
+    } catch (error) {
+      console.error("Error starting WhatsApp connection:", error);
+      setWhatsappVerifyMessage("❌ Error sending verification code");
+    } finally {
+      setGeneratingWhatsappCode(false);
+    }
+  };
+
+  const verifyWhatsappCode = async () => {
+    if (!whatsappOtp || whatsappOtp.length !== 6) {
+      setWhatsappVerifyMessage("❌ Please enter the 6-digit code");
+      return;
+    }
+    setVerifyingWhatsapp(true);
+    setWhatsappVerifyMessage(null);
+    try {
+      const res = await fetch("/api/settings/whatsapp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: whatsappOtp }),
+      });
+      const data = await res.json();
+      if (data.verified) {
+        setWhatsappVerifyMessage("✅ " + data.message);
+        setWhatsappOtp("");
+        await fetchWhatsappStatus();
+      } else {
+        setWhatsappVerifyMessage("❌ " + (data.error || "Invalid code"));
+      }
+    } catch (error) {
+      console.error("Error verifying WhatsApp:", error);
+      setWhatsappVerifyMessage("❌ Error verifying code");
+    } finally {
+      setVerifyingWhatsapp(false);
+    }
+  };
+
+  const disconnectWhatsapp = async () => {
+    if (!confirm("Are you sure you want to disconnect WhatsApp notifications?")) {
+      return;
+    }
+    setDisconnectingWhatsapp(true);
+    try {
+      const res = await fetch("/api/settings/whatsapp", { method: "DELETE" });
+      if (res.ok) {
+        setWhatsappPhone("");
+        await fetchWhatsappStatus();
+      }
+    } catch (error) {
+      console.error("Error disconnecting WhatsApp:", error);
+    } finally {
+      setDisconnectingWhatsapp(false);
     }
   };
 
@@ -428,6 +564,276 @@ function SettingsContent() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* WhatsApp Notifications Section */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-6 animate-slide-up" style={{ animationDelay: '0.025s' }}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-white flex-shrink-0" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">WhatsApp Notifications</h2>
+              <p className="text-white/50 text-sm">Get instant alerts via WhatsApp</p>
+            </div>
+          </div>
+
+          {whatsappStatus?.connected ? (
+            /* Connected State */
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-5">
+              <div className="flex items-center gap-2 text-emerald-400 mb-3">
+                <div className="w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="font-semibold">Connected</span>
+                <span className="text-white/50 text-sm ml-2">({whatsappStatus.phone})</span>
+              </div>
+              <p className="text-white/60 text-sm mb-5">
+                Your WhatsApp is connected. You&apos;ll receive notifications for new reviews with AI-generated reply suggestions.
+              </p>
+              
+              <div className="flex flex-wrap gap-3 items-center">
+                <button
+                  onClick={disconnectWhatsapp}
+                  disabled={disconnectingWhatsapp}
+                  className="px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50"
+                >
+                  {disconnectingWhatsapp ? "Disconnecting..." : "Disconnect"}
+                </button>
+              </div>
+            </div>
+          ) : whatsappStatus?.pendingCode ? (
+            /* Pending Verification State */
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-5">
+              <p className="text-amber-300 text-sm mb-4">
+                Enter the 6-digit code sent to your WhatsApp ({whatsappStatus.phone}):
+              </p>
+              
+              <div className="flex gap-3 mb-5">
+                <input
+                  type="text"
+                  value={whatsappOtp}
+                  onChange={(e) => setWhatsappOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="000000"
+                  className="flex-1 max-w-[200px] px-4 py-3 bg-slate-800/80 border-2 border-amber-500/50 rounded-xl text-center text-2xl font-mono font-bold tracking-[0.3em] text-white placeholder-white/30 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              
+              {whatsappVerifyMessage && (
+                <div className={`text-sm mb-4 p-3 rounded-lg animate-scale-in ${
+                  whatsappVerifyMessage.startsWith("✅") 
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
+                    : "bg-red-500/20 text-red-300 border border-red-500/30"
+                }`}>
+                  {whatsappVerifyMessage}
+                </div>
+              )}
+              
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={verifyWhatsappCode}
+                  disabled={verifyingWhatsapp || whatsappOtp.length !== 6}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {verifyingWhatsapp ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 flex-shrink-0" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Verify Code
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setWhatsappPhone(""); fetchWhatsappStatus(); }}
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-all duration-200"
+                >
+                  Change Number
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Not Connected State */
+            <div className="bg-slate-800/50 border border-white/10 rounded-xl p-5">
+              <p className="text-white/60 text-sm mb-5">
+                Connect your WhatsApp to receive instant notifications when customers leave reviews. Enter your phone number to get started.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <input
+                  type="tel"
+                  value={whatsappPhone}
+                  onChange={(e) => setWhatsappPhone(e.target.value.replace(/[^0-9+]/g, ""))}
+                  placeholder="+1 234 567 8900"
+                  className="flex-1 max-w-[280px] px-4 py-2.5 bg-slate-800/80 border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-green-500/50"
+                />
+                <button
+                  onClick={startWhatsappConnection}
+                  disabled={generatingWhatsappCode || !whatsappPhone}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl text-sm font-medium transition-all duration-200 shadow-lg shadow-green-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generatingWhatsappCode ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 flex-shrink-0" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                      </svg>
+                      Send Verification Code
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {whatsappVerifyMessage && (
+                <div className={`text-sm p-3 rounded-lg animate-scale-in ${
+                  whatsappVerifyMessage.startsWith("✅") 
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
+                    : "bg-red-500/20 text-red-300 border border-red-500/30"
+                }`}>
+                  {whatsappVerifyMessage}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Notification Preferences Section */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 mb-6 animate-slide-up" style={{ animationDelay: '0.04s' }}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-400 to-purple-600 rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-white flex-shrink-0" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Notification Preferences</h2>
+              <p className="text-white/50 text-sm">Choose where to receive review alerts</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Telegram Only */}
+            <button
+              onClick={() => updateNotificationPreference("telegram")}
+              disabled={!telegramStatus?.connected}
+              className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                notificationPreference === "telegram"
+                  ? "border-blue-500 bg-blue-500/10"
+                  : "border-white/10 bg-white/5 hover:border-white/20"
+              } ${!telegramStatus?.connected ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-4 h-4 rounded-full border-2 ${
+                  notificationPreference === "telegram" ? "border-blue-500 bg-blue-500" : "border-white/30"
+                }`}>
+                  {notificationPreference === "telegram" && (
+                    <svg className="w-full h-full text-white p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className="font-medium text-white">Telegram Only</span>
+              </div>
+              <p className="text-white/50 text-xs ml-7">
+                {telegramStatus?.connected ? "Receive alerts via Telegram" : "Connect Telegram first"}
+              </p>
+            </button>
+
+            {/* WhatsApp Only */}
+            <button
+              onClick={() => updateNotificationPreference("whatsapp")}
+              disabled={!whatsappStatus?.connected}
+              className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                notificationPreference === "whatsapp"
+                  ? "border-green-500 bg-green-500/10"
+                  : "border-white/10 bg-white/5 hover:border-white/20"
+              } ${!whatsappStatus?.connected ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-4 h-4 rounded-full border-2 ${
+                  notificationPreference === "whatsapp" ? "border-green-500 bg-green-500" : "border-white/30"
+                }`}>
+                  {notificationPreference === "whatsapp" && (
+                    <svg className="w-full h-full text-white p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className="font-medium text-white">WhatsApp Only</span>
+              </div>
+              <p className="text-white/50 text-xs ml-7">
+                {whatsappStatus?.connected ? "Receive alerts via WhatsApp" : "Connect WhatsApp first"}
+              </p>
+            </button>
+
+            {/* Both */}
+            <button
+              onClick={() => updateNotificationPreference("both")}
+              disabled={!telegramStatus?.connected && !whatsappStatus?.connected}
+              className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                notificationPreference === "both"
+                  ? "border-violet-500 bg-violet-500/10"
+                  : "border-white/10 bg-white/5 hover:border-white/20"
+              } ${!telegramStatus?.connected && !whatsappStatus?.connected ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-4 h-4 rounded-full border-2 ${
+                  notificationPreference === "both" ? "border-violet-500 bg-violet-500" : "border-white/30"
+                }`}>
+                  {notificationPreference === "both" && (
+                    <svg className="w-full h-full text-white p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className="font-medium text-white">Both</span>
+              </div>
+              <p className="text-white/50 text-xs ml-7">
+                {telegramStatus?.connected || whatsappStatus?.connected 
+                  ? "Receive alerts on all connected channels" 
+                  : "Connect at least one channel first"}
+              </p>
+            </button>
+
+            {/* None */}
+            <button
+              onClick={() => updateNotificationPreference("none")}
+              className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                notificationPreference === "none"
+                  ? "border-red-500 bg-red-500/10"
+                  : "border-white/10 bg-white/5 hover:border-white/20"
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-4 h-4 rounded-full border-2 ${
+                  notificationPreference === "none" ? "border-red-500 bg-red-500" : "border-white/30"
+                }`}>
+                  {notificationPreference === "none" && (
+                    <svg className="w-full h-full text-white p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className="font-medium text-white">None</span>
+              </div>
+              <p className="text-white/50 text-xs ml-7">
+                Disable all notifications (you can still view reviews in the app)
+              </p>
+            </button>
+          </div>
         </div>
 
         {/* Google Business Profile Section */}

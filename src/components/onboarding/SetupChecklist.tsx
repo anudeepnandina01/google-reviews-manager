@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface SetupStatus {
-  telegramConnected: boolean;
+  notificationsConnected: boolean;
   googleBusinessConnected: boolean;
   hasBusinesses: boolean;
   hasLocations: boolean;
@@ -19,7 +19,7 @@ interface SetupChecklistProps {
 export function SetupChecklist({ onStatusChange, compact = false }: SetupChecklistProps) {
   const router = useRouter();
   const [status, setStatus] = useState<SetupStatus>({
-    telegramConnected: false,
+    notificationsConnected: false,
     googleBusinessConnected: false,
     hasBusinesses: false,
     hasLocations: false,
@@ -33,13 +33,15 @@ export function SetupChecklist({ onStatusChange, compact = false }: SetupCheckli
 
   const fetchStatus = async () => {
     try {
-      const [telegramRes, googleRes, businessesRes] = await Promise.all([
+      const [telegramRes, whatsappRes, googleRes, businessesRes] = await Promise.all([
         fetch("/api/settings/telegram"),
+        fetch("/api/settings/whatsapp"),
         fetch("/api/auth/google-business/status"),
         fetch("/api/businesses"),
       ]);
 
       const telegramData = telegramRes.ok ? await telegramRes.json() : { connected: false };
+      const whatsappData = whatsappRes.ok ? await whatsappRes.json() : { connected: false };
       const googleData = googleRes.ok ? await googleRes.json() : { connected: false };
       const businessesData = businessesRes.ok ? await businessesRes.json() : [];
 
@@ -47,8 +49,11 @@ export function SetupChecklist({ onStatusChange, compact = false }: SetupCheckli
         b.brands?.some((brand: any) => brand.locations?.length > 0)
       );
 
+      // User has notifications connected if either Telegram OR WhatsApp is connected
+      const notificationsConnected = telegramData.connected || whatsappData.connected;
+
       const newStatus = {
-        telegramConnected: telegramData.connected,
+        notificationsConnected,
         googleBusinessConnected: googleData.connected,
         hasBusinesses: businessesData.length > 0,
         hasLocations,
@@ -70,14 +75,14 @@ export function SetupChecklist({ onStatusChange, compact = false }: SetupCheckli
 
   const steps = [
     {
-      id: "telegram",
-      title: "Connect Telegram",
-      description: "Receive instant review alerts on your phone",
-      completed: status.telegramConnected,
+      id: "notifications",
+      title: "Connect Notifications",
+      description: "Receive instant alerts via Telegram or WhatsApp",
+      completed: status.notificationsConnected,
       action: () => router.push("/dashboard/settings"),
       icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
       ),
     },

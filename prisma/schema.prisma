@@ -55,10 +55,24 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  
+  // Telegram integration
   telegramChatId String?  // Telegram chat ID for notifications
   telegramConnectCode String? // Temporary code for connecting Telegram
   telegramConnectExpiry DateTime? // Expiry time for connect code
   telegramEditingReplyId String? // Currently editing reply ID (for Telegram flow)
+  telegramEnabled Boolean @default(true) // Whether to send Telegram notifications
+  
+  // WhatsApp integration
+  whatsappPhone String?   // WhatsApp phone number (with country code, e.g., +1234567890)
+  whatsappVerified Boolean @default(false) // Whether the phone is verified
+  whatsappConnectCode String? // OTP for verifying WhatsApp
+  whatsappConnectExpiry DateTime? // Expiry time for verification code
+  whatsappEnabled Boolean @default(true) // Whether to send WhatsApp notifications
+  
+  // Notification preferences
+  notificationPreference String @default("both") // "telegram", "whatsapp", "both", "none"
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
