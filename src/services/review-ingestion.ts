@@ -1,6 +1,7 @@
 import axios from "axios";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppNotification } from "./whatsapp";
+import { sendTelegramNotification } from "./telegram";
 import { generateAiReply } from "./ai-reply";
 
 const GOOGLE_BUSINESS_API_KEY = process.env.GOOGLE_BUSINESS_API_KEY;
@@ -175,41 +176,78 @@ async function processReview(
       },
     });
 
-    // Get owner contact for WhatsApp notification
+    // Get owner with notification preferences
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       include: { user: true },
     });
 
-    if (business?.user?.email) {
-      // TODO: Get phone number from user profile or business settings
-      const ownerPhone = "+1234567890"; // Placeholder
+    const user = business?.user;
+    if (!user) return;
 
-      // PARALLEL EXECUTION STARTS HERE
-      // 1. Send WhatsApp notification immediately (fire-and-forget)
-      await sendWhatsAppNotification(
-        {
-          recipientPhone: ownerPhone,
-          reviewerName: googleReview.reviewer.displayName,
-          rating: googleReview.starRating,
-          reviewText: googleReview.reviewText,
-          locationName: location.name,
-          aiReplyText: null, // AI reply not ready yet
-          approvalLink: `${process.env.NEXTAUTH_URL}/reviews/${review.id}/approve`,
-        },
-        review.id
+    const preference = (user as any).notificationPreference || "both";
+    const approvalLink = `${process.env.NEXTAUTH_URL}/dashboard/reviews?reviewId=${review.id}`;
+
+    // PARALLEL EXECUTION: Send notifications based on user preference
+    const notificationPromises: Promise<void>[] = [];
+
+    // Send WhatsApp notification if enabled and connected
+    if ((preference === "whatsapp" || preference === "both") && 
+        (user as any).whatsappPhone && 
+        (user as any).whatsappVerified) {
+      notificationPromises.push(
+        sendWhatsAppNotification(
+          {
+            recipientPhone: (user as any).whatsappPhone,
+            reviewerName: googleReview.reviewer.displayName,
+            rating: googleReview.starRating,
+            reviewText: googleReview.reviewText,
+            locationName: location.name,
+            aiReplyText: null, // AI reply not ready yet
+            approvalLink,
+          },
+          review.id
+        ).catch((error) => {
+          console.error(`WhatsApp notification failed for review ${review.id}:`, error);
+        })
       );
-
-      // 2. Generate AI reply asynchronously (non-blocking)
-      generateAiReply(
-        review.id,
-        googleReview.reviewText,
-        googleReview.starRating,
-        location.brand.name
-      ).catch((error) => {
-        console.error(`AI generation failed for review ${review.id}:`, error);
-      });
     }
+
+    // Send Telegram notification if enabled and connected
+    if ((preference === "telegram" || preference === "both") && 
+        (user as any).telegramChatId && 
+        (user as any).telegramEnabled !== false) {
+      notificationPromises.push(
+        sendTelegramNotification(
+          {
+            chatId: (user as any).telegramChatId,
+            reviewerName: googleReview.reviewer.displayName,
+            rating: googleReview.starRating,
+            reviewText: googleReview.reviewText,
+            locationName: location.name,
+            businessName: location.brand.name,
+            aiReplyText: null, // AI reply not ready yet
+            approvalLink,
+          },
+          review.id
+        ).catch((error) => {
+          console.error(`Telegram notification failed for review ${review.id}:`, error);
+        })
+      );
+    }
+
+    // Fire notifications (non-blocking)
+    Promise.allSettled(notificationPromises);
+
+    // Generate AI reply asynchronously (non-blocking)
+    generateAiReply(
+      review.id,
+      googleReview.reviewText,
+      googleReview.starRating,
+      location.brand.name
+    ).catch((error) => {
+      console.error(`AI generation failed for review ${review.id}:`, error);
+    });
   } catch (error) {
     console.error("Error processing review:", error);
   }
