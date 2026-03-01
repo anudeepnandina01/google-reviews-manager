@@ -23,7 +23,7 @@ export default function SignIn() {
       });
 
       if (response.ok) {
-        window.location.href = "/dashboard";
+        window.location.href = "/dashboard/welcome";
         return true;
       } else {
         const data = await response.json();
@@ -43,7 +43,7 @@ export default function SignIn() {
       try {
         const res = await fetch("/api/auth/me");
         if (res.ok) {
-          window.location.href = "/dashboard";
+          window.location.href = "/dashboard/welcome";
           return true;
         }
       } catch {

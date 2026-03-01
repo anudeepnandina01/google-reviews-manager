@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   if (error) {
     console.error("Google OAuth error:", error);
     return NextResponse.redirect(
-      new URL(`/dashboard/settings?error=${encodeURIComponent(error)}`, baseUrl)
+      new URL(`/dashboard/settings/google?error=${encodeURIComponent(error)}`, baseUrl)
     );
   }
   
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   if (!state || state !== savedState) {
     console.error("OAuth state mismatch");
     return NextResponse.redirect(
-      new URL("/dashboard/settings?error=invalid_state", baseUrl)
+      new URL("/dashboard/settings/google?error=invalid_state", baseUrl)
     );
   }
   
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   
   if (!code) {
     return NextResponse.redirect(
-      new URL("/dashboard/settings?error=no_code", baseUrl)
+      new URL("/dashboard/settings/google?error=no_code", baseUrl)
     );
   }
   
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok || tokenData.error) {
       console.error("Token exchange error:", tokenData);
       return NextResponse.redirect(
-        new URL(`/dashboard/settings?error=${encodeURIComponent(tokenData.error || "token_exchange_failed")}`, baseUrl)
+        new URL(`/dashboard/settings/google?error=${encodeURIComponent(tokenData.error || "token_exchange_failed")}`, baseUrl)
       );
     }
     
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     if (!refresh_token) {
       console.error("No refresh token received - user may need to revoke access and try again");
       return NextResponse.redirect(
-        new URL("/dashboard/settings?error=no_refresh_token", baseUrl)
+        new URL("/dashboard/settings/google?error=no_refresh_token", baseUrl)
       );
     }
     
@@ -103,12 +103,12 @@ export async function GET(request: NextRequest) {
     console.log(`Google Business Profile connected for user ${session.userId}`);
     
     return NextResponse.redirect(
-      new URL("/dashboard/settings?success=google_business_connected", baseUrl)
+      new URL("/dashboard/settings/google?success=google_business_connected", baseUrl)
     );
   } catch (error) {
     console.error("Error handling OAuth callback:", error);
     return NextResponse.redirect(
-      new URL("/dashboard/settings?error=server_error", baseUrl)
+      new URL("/dashboard/settings/google?error=server_error", baseUrl)
     );
   }
 }
