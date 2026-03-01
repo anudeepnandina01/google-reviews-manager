@@ -473,7 +473,7 @@ export default function BusinessDetailPage() {
                         
                         {/* Sync Message for this location */}
                         {syncMessage && syncMessage.locationId === location.id && (
-                          <div className={`mt-2 ml-13 text-xs ${syncMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <div className={`mt-2 ml-12 text-xs ${syncMessage.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
                             {syncMessage.text}
                           </div>
                         )}

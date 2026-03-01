@@ -424,10 +424,10 @@ function NotificationsContent() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {([
-            { value: "whatsapp" as const, label: "WhatsApp Only", color: "green", connected: whatsappStatus?.connected, desc: whatsappStatus?.connected ? "Receive alerts via WhatsApp" : "Connect WhatsApp first" },
-            { value: "telegram" as const, label: "Telegram Only", color: "blue", connected: telegramStatus?.connected, desc: telegramStatus?.connected ? "Receive alerts via Telegram" : "Connect Telegram first" },
-            { value: "both" as const, label: "Both", color: "violet", connected: telegramStatus?.connected || whatsappStatus?.connected, desc: (telegramStatus?.connected || whatsappStatus?.connected) ? "Receive alerts on all connected channels" : "Connect at least one channel first" },
-            { value: "none" as const, label: "None", color: "red", connected: true, desc: "Disable all notifications (view reviews in app only)" },
+            { value: "whatsapp" as const, label: "WhatsApp Only", activeBorder: "border-green-500 bg-green-500/10", activeRadio: "border-green-500 bg-green-500", connected: whatsappStatus?.connected, desc: whatsappStatus?.connected ? "Receive alerts via WhatsApp" : "Connect WhatsApp first" },
+            { value: "telegram" as const, label: "Telegram Only", activeBorder: "border-blue-500 bg-blue-500/10", activeRadio: "border-blue-500 bg-blue-500", connected: telegramStatus?.connected, desc: telegramStatus?.connected ? "Receive alerts via Telegram" : "Connect Telegram first" },
+            { value: "both" as const, label: "Both", activeBorder: "border-violet-500 bg-violet-500/10", activeRadio: "border-violet-500 bg-violet-500", connected: telegramStatus?.connected || whatsappStatus?.connected, desc: (telegramStatus?.connected || whatsappStatus?.connected) ? "Receive alerts on all connected channels" : "Connect at least one channel first" },
+            { value: "none" as const, label: "None", activeBorder: "border-red-500 bg-red-500/10", activeRadio: "border-red-500 bg-red-500", connected: true, desc: "Disable all notifications (view reviews in app only)" },
           ]).map((opt) => (
             <button
               key={opt.value}
@@ -435,12 +435,12 @@ function NotificationsContent() {
               disabled={!opt.connected}
               className={`p-4 rounded-xl border-2 transition-all text-left ${
                 notificationPreference === opt.value
-                  ? `border-${opt.color}-500 bg-${opt.color}-500/10`
+                  ? opt.activeBorder
                   : "border-white/10 bg-white/5 hover:border-white/20"
               } ${!opt.connected ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex items-center gap-3 mb-2">
-                <div className={`w-4 h-4 rounded-full border-2 ${notificationPreference === opt.value ? `border-${opt.color}-500 bg-${opt.color}-500` : "border-white/30"}`}>
+                <div className={`w-4 h-4 rounded-full border-2 ${notificationPreference === opt.value ? opt.activeRadio : "border-white/30"}`}>
                   {notificationPreference === opt.value && (
                     <svg className="w-full h-full text-white p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                   )}
