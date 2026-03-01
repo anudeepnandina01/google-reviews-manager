@@ -95,47 +95,66 @@ function DashboardContent() {
         <p className="text-white/50 text-lg">What would you like to do today?</p>
       </div>
 
-      {/* Setup Progress - only show if not complete */}
-      {completedSteps < totalSteps && (
-        <div className="mb-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 animate-slide-up">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-white/80">Setup Progress</h2>
-            <span className="text-xs text-white/50">{completedSteps}/{totalSteps} complete</span>
+      {/* Setup Progress - always visible */}
+      <div className={`mb-8 backdrop-blur-sm border rounded-2xl p-5 animate-slide-up ${
+        completedSteps === totalSteps
+          ? "bg-emerald-500/5 border-emerald-500/20"
+          : "bg-white/5 border-white/10"
+      }`}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            {completedSteps === totalSteps ? (
+              <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            <h2 className="text-sm font-semibold text-white/80">
+              {completedSteps === totalSteps ? "All set! Your account is fully configured" : "Getting Started"}
+            </h2>
           </div>
-          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4">
-            <div
-              className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
-              style={{ width: `${(completedSteps / totalSteps) * 100}%` }}
-            />
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {[
-              { done: setup.notifications, label: "Connect Notifications", href: "/dashboard/settings/notifications" },
-              { done: setup.google, label: "Connect Google Business", href: "/dashboard/settings/google" },
-              { done: setup.businesses, label: "Add a Business", href: "/dashboard/businesses/new" },
-            ].map((step) => (
-              <Link
-                key={step.label}
-                href={step.done ? "#" : step.href}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  step.done
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                    : "bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                {step.done ? (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30" />
-                )}
-                {step.label}
-              </Link>
-            ))}
-          </div>
+          <span className="text-xs text-white/50">{completedSteps}/{totalSteps} complete</span>
         </div>
-      )}
+        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden mb-4">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              completedSteps === totalSteps
+                ? "bg-gradient-to-r from-emerald-500 to-green-500"
+                : "bg-gradient-to-r from-violet-500 to-purple-500"
+            }`}
+            style={{ width: `${(completedSteps / totalSteps) * 100}%` }}
+          />
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {[
+            { done: setup.notifications, label: "Connect Notifications", href: "/dashboard/settings/notifications", doneLabel: "Notifications Connected" },
+            { done: setup.google, label: "Connect Google Business", href: "/dashboard/settings/google", doneLabel: "Google Connected" },
+            { done: setup.businesses, label: "Add a Business", href: "/dashboard/businesses", doneLabel: "Business Added" },
+          ].map((step) => (
+            <Link
+              key={step.label}
+              href={step.done ? step.href : step.href}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                step.done
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+                  : "bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              {step.done ? (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-white/30" />
+              )}
+              {step.done ? step.doneLabel : step.label}
+            </Link>
+          ))}
+        </div>
+      </div>
 
       {/* Main Action Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
