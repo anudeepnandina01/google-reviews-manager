@@ -56,15 +56,15 @@ const ALL_TOUR_STEPS: TourStep[] = [
     description:
       "This is your Home button. It takes you to the Welcome page where you can check your setup progress.",
     position: "right",
-    route: "/dashboard/welcome",
+    route: "/home",
   },
   {
     target: "tour-setup-progress",
     title: "Setup Progress",
     description:
-      "Track your account setup here — connect notifications, link Google Business, and add your first business.",
+      "Track your account setup here \u2014 connect notifications, link Google Business, and add your first business.",
     position: "bottom",
-    route: "/dashboard/welcome",
+    route: "/home",
     skipReason: "Initial setup is complete — skipping Setup Progress.",
   },
   {
@@ -73,7 +73,7 @@ const ALL_TOUR_STEPS: TourStep[] = [
     description:
       "Click this button anytime to jump to your Dashboard and manage everything.",
     position: "top",
-    route: "/dashboard/welcome",
+    route: "/home",
   },
 
   // ── 2. Dashboard page ───────────────────────────────────────────

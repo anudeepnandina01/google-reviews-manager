@@ -43,7 +43,7 @@ export default function SignUp() {
 
       if (response.ok) {
         sessionStorage.setItem("trigger-tour", "1");
-        window.location.href = "/dashboard/welcome";
+        window.location.href = "/home";
         return true;
       }
     } catch (err) {
@@ -57,7 +57,7 @@ export default function SignUp() {
       try {
         const res = await fetch("/api/auth/me");
         if (res.ok) {
-          window.location.href = "/dashboard/welcome";
+          window.location.href = "/home";
           return true;
         }
       } catch {

@@ -24,7 +24,7 @@ export default function SignIn() {
 
       if (response.ok) {
         sessionStorage.setItem("trigger-tour", "1");
-        window.location.href = "/dashboard/welcome";
+        window.location.href = "/home";
         return true;
       } else {
         const data = await response.json();
@@ -44,7 +44,7 @@ export default function SignIn() {
       try {
         const res = await fetch("/api/auth/me");
         if (res.ok) {
-          window.location.href = "/dashboard/welcome";
+          window.location.href = "/home";
           return true;
         }
       } catch {

@@ -1,17 +1,10 @@
-"use client";
-
 import { ReactNode } from "react";
-import { TourProvider, TourOverlay } from "@/components/tour";
 
 /**
  * Persistent layout for all /dashboard/* routes.
- * TourProvider lives here so tour state survives page navigations.
+ * TourProvider now lives in root Providers so tour state
+ * survives navigation between /home and /dashboard.
  */
 export default function DashboardRootLayout({ children }: { children: ReactNode }) {
-  return (
-    <TourProvider>
-      {children}
-      <TourOverlay />
-    </TourProvider>
-  );
+  return <>{children}</>;
 }
