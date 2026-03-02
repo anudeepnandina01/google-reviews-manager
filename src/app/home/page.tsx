@@ -141,7 +141,7 @@ function WelcomeContent() {
 
       {/* All set message */}
       {completedSteps === totalSteps && (
-        <div className="w-full mb-8 bg-emerald-500/5 backdrop-blur-sm border border-emerald-500/20 rounded-2xl p-5 animate-slide-up">
+        <div data-tour="tour-setup-progress" className="w-full mb-8 bg-emerald-500/5 backdrop-blur-sm border border-emerald-500/20 rounded-2xl p-5 animate-slide-up">
           <div className="flex items-center gap-3">
             <svg className="w-6 h-6 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

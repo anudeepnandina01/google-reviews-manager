@@ -62,10 +62,9 @@ const ALL_TOUR_STEPS: TourStep[] = [
     target: "tour-setup-progress",
     title: "Setup Progress",
     description:
-      "Track your account setup here \u2014 connect notifications, link Google Business, and add your first business.",
+      "This tracks your account setup — connect notifications, link Google Business, and add your first business. If all steps are already done, you're all set! Move on to the next step.",
     position: "bottom",
     route: "/home",
-    skipReason: "Initial setup is complete — skipping Setup Progress.",
   },
   {
     target: "tour-go-dashboard",
