@@ -117,6 +117,7 @@ function DashboardContent() {
       {pendingCount > 0 && (
         <Link
           href="/dashboard/reviews?status=pending"
+          data-tour="tour-pending-alert"
           className="flex items-center gap-3 mb-6 bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 hover:bg-orange-500/15 transition-all animate-slide-up"
         >
           <div className="w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -140,6 +141,7 @@ function DashboardContent() {
           <Link
             key={card.title}
             href={card.href}
+            data-tour={`tour-card-${card.title.toLowerCase()}`}
             className={`group flex items-center gap-5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/10 ${card.hoverBorder} transition-all duration-300 animate-slide-up`}
             style={{ animationDelay: `${index * 0.05}s` }}
           >

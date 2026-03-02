@@ -62,6 +62,7 @@ function SettingsHub() {
   const cards = [
     {
       title: "Notifications",
+      tourId: "tour-settings-notifications",
       description: "WhatsApp & Telegram alert settings",
       href: "/dashboard/settings/notifications",
       icon: (
@@ -79,6 +80,7 @@ function SettingsHub() {
     },
     {
       title: "Google Business",
+      tourId: "tour-settings-google",
       description: "Connect Google to sync reviews automatically",
       href: "/dashboard/settings/google",
       icon: (
@@ -94,6 +96,7 @@ function SettingsHub() {
     },
     {
       title: "Account",
+      tourId: "tour-settings-account",
       description: "Profile details and account management",
       href: "/dashboard/settings/account",
       icon: (
@@ -123,6 +126,7 @@ function SettingsHub() {
           <Link
             key={card.title}
             href={card.href}
+            data-tour={card.tourId}
             className={`group flex items-center gap-5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/10 ${card.hoverBorder} transition-all duration-300 animate-slide-up`}
             style={{ animationDelay: `${index * 0.05}s` }}
           >

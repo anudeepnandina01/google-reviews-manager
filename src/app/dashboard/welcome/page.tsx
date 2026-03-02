@@ -94,7 +94,7 @@ function WelcomeContent() {
 
       {/* Setup Progress */}
       {completedSteps < totalSteps && (
-        <div className="w-full mb-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 animate-slide-up">
+        <div data-tour="tour-setup-progress" className="w-full mb-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 animate-slide-up">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,6 +157,7 @@ function WelcomeContent() {
       {/* Go to Dashboard Button */}
       <Link
         href="/dashboard"
+        data-tour="tour-go-dashboard"
         className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-2xl font-semibold text-lg hover:from-violet-500 hover:to-purple-500 transition-all shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-[1.02] animate-slide-up"
         style={{ animationDelay: "0.1s" }}
       >
