@@ -17,11 +17,14 @@ export interface TourStep {
   description: string;
   position?: "top" | "bottom" | "left" | "right";
   route: string; // the page this element lives on
+  /** Shown briefly when this step is auto-skipped because its target isn't in the DOM */
+  skipReason?: string;
 }
 
 interface TourContextType {
   isActive: boolean;
   isNavigating: boolean;
+  skipMessage: string | null;
   currentStep: number;
   steps: TourStep[];
   totalSteps: number;
@@ -62,6 +65,7 @@ const ALL_TOUR_STEPS: TourStep[] = [
       "Track your account setup here — connect notifications, link Google Business, and add your first business.",
     position: "bottom",
     route: "/dashboard/welcome",
+    skipReason: "Initial setup is complete — skipping Setup Progress.",
   },
   {
     target: "tour-go-dashboard",
@@ -88,6 +92,7 @@ const ALL_TOUR_STEPS: TourStep[] = [
       "When reviews are awaiting your approval this alert shows up. Tap it to review them.",
     position: "bottom",
     route: "/dashboard",
+    skipReason: "No pending reviews right now — skipping this step.",
   },
   {
     target: "tour-card-businesses",
@@ -178,14 +183,25 @@ const ALL_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-/* ── helper: wait for a DOM element to appear (with timeout) ──────── */
-function waitForElement(selector: string, timeout = 3000): Promise<Element | null> {
+/* ── helper: pick the first *visible* match (non-zero rect) ──────── */
+function findVisibleElement(selector: string): Element | null {
+  const all = document.querySelectorAll(selector);
+  for (const el of all) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return el;
+  }
+  return null;
+}
+
+/* ── helper: wait for a *visible* DOM element (with timeout) ──────── */
+function waitForElement(selector: string, timeout = 1500): Promise<Element | null> {
   return new Promise((resolve) => {
-    const el = document.querySelector(selector);
+    // Check immediately
+    const el = findVisibleElement(selector);
     if (el) return resolve(el);
 
     const observer = new MutationObserver(() => {
-      const found = document.querySelector(selector);
+      const found = findVisibleElement(selector);
       if (found) {
         observer.disconnect();
         resolve(found);
@@ -205,7 +221,9 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [isActive, setIsActive] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [skipMessage, setSkipMessage] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // We need a ref so callbacks always see fresh values
   const stateRef = useRef({ isActive, currentStep, pathname });
@@ -237,6 +255,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
       if (!el) {
         // Element didn't appear (e.g. pending alert not shown) → skip this step
+        if (step.skipReason) {
+          // Show a brief explanation of why we're skipping
+          setSkipMessage(step.skipReason);
+          if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
+          skipTimerRef.current = setTimeout(() => setSkipMessage(null), 2200);
+        }
         const direction = stepIndex >= stateRef.current.currentStep ? 1 : -1;
         const next = stepIndex + direction;
         if (next >= 0 && next < ALL_TOUR_STEPS.length) {
@@ -286,6 +310,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
       value={{
         isActive,
         isNavigating,
+        skipMessage,
         currentStep,
         steps: ALL_TOUR_STEPS,
         totalSteps: ALL_TOUR_STEPS.length,

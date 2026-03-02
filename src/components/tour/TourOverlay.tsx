@@ -11,9 +11,19 @@ interface Rect {
 }
 
 export default function TourOverlay() {
-  const { isActive, isNavigating, currentStep, steps, totalSteps, nextStep, prevStep, skipTour } =
+  const { isActive, isNavigating, skipMessage, currentStep, steps, totalSteps, nextStep, prevStep, skipTour } =
     useTour();
   const [rect, setRect] = useState<Rect | null>(null);
+
+  /* ── pick the first *visible* match (non-zero size) ─────────────── */
+  const findVisible = useCallback((selector: string): Element | null => {
+    const all = document.querySelectorAll(selector);
+    for (const el of all) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) return el;
+    }
+    return null;
+  }, []);
 
   /* ── keep the highlight rect in sync ────────────────────────────── */
   const refresh = useCallback(() => {
@@ -21,7 +31,7 @@ export default function TourOverlay() {
       setRect(null);
       return;
     }
-    const el = document.querySelector(
+    const el = findVisible(
       `[data-tour="${steps[currentStep].target}"]`
     );
     if (el) {
@@ -31,7 +41,7 @@ export default function TourOverlay() {
     } else {
       setRect(null);
     }
-  }, [isActive, currentStep, steps]);
+  }, [isActive, currentStep, steps, findVisible]);
 
   useEffect(() => {
     refresh();
@@ -54,10 +64,22 @@ export default function TourOverlay() {
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000] flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-white/70 text-sm font-medium">Navigating…</p>
+          {skipMessage && (
+            <p className="text-violet-300 text-xs font-medium bg-violet-500/20 border border-violet-500/30 px-3 py-1.5 rounded-lg mt-1 animate-pulse">
+              {skipMessage}
+            </p>
+          )}
         </div>
       </div>
     );
   }
+
+  /* ── skip-reason toast (can appear briefly over a normal step too) ── */
+  const skipToast = skipMessage ? (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[10001] px-4 py-2 bg-slate-800 border border-violet-500/30 rounded-xl shadow-lg">
+      <p className="text-violet-300 text-xs font-medium">{skipMessage}</p>
+    </div>
+  ) : null;
 
   const step = steps[currentStep];
   const pos = step.position || "bottom";
@@ -307,6 +329,9 @@ export default function TourOverlay() {
           ))}
         </div>
       </div>
+
+      {/* Skip-reason toast */}
+      {skipToast}
     </div>
   );
 }
