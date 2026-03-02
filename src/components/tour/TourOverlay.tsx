@@ -75,9 +75,12 @@ export default function TourOverlay() {
   }
 
   /* ── skip-reason toast (can appear briefly over a normal step too) ── */
-  const skipToast = skipMessage ? (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[10001] px-4 py-2 bg-slate-800 border border-violet-500/30 rounded-xl shadow-lg">
-      <p className="text-violet-300 text-xs font-medium">{skipMessage}</p>
+  const skipBanner = skipMessage ? (
+    <div className="flex items-start gap-2 mb-3 p-2.5 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+      <svg className="w-4 h-4 text-violet-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <p className="text-violet-300 text-xs leading-relaxed">{skipMessage}</p>
     </div>
   ) : null;
 
@@ -258,6 +261,7 @@ export default function TourOverlay() {
         </div>
 
         {/* Content */}
+        {skipBanner}
         <h3 className="text-lg font-bold text-white mb-1.5">{step.title}</h3>
         <p className="text-white/60 text-sm leading-relaxed mb-5">
           {step.description}
@@ -329,9 +333,6 @@ export default function TourOverlay() {
           ))}
         </div>
       </div>
-
-      {/* Skip-reason toast */}
-      {skipToast}
     </div>
   );
 }

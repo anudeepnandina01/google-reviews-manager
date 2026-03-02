@@ -23,6 +23,7 @@ export default function SignIn() {
       });
 
       if (response.ok) {
+        sessionStorage.setItem("trigger-tour", "1");
         window.location.href = "/dashboard/welcome";
         return true;
       } else {

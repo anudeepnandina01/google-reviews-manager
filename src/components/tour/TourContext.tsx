@@ -225,6 +225,22 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(0);
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Auto-start tour after sign-in (flag set by signin/signup pages)
+  const hasAutoStarted = useRef(false);
+  useEffect(() => {
+    if (hasAutoStarted.current) return;
+    const shouldTrigger = sessionStorage.getItem("trigger-tour");
+    if (shouldTrigger) {
+      hasAutoStarted.current = true;
+      sessionStorage.removeItem("trigger-tour");
+      // Small delay so the page fully renders before tour starts
+      const timer = setTimeout(() => {
+        startTourRef.current();
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // We need a ref so callbacks always see fresh values
   const stateRef = useRef({ isActive, currentStep, pathname });
   useEffect(() => {
@@ -259,7 +275,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
           // Show a brief explanation of why we're skipping
           setSkipMessage(step.skipReason);
           if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
-          skipTimerRef.current = setTimeout(() => setSkipMessage(null), 2200);
+          skipTimerRef.current = setTimeout(() => setSkipMessage(null), 4500);
         }
         const direction = stepIndex >= stateRef.current.currentStep ? 1 : -1;
         const next = stepIndex + direction;
@@ -283,6 +299,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setIsActive(true);
     goToStep(0);
   }, [goToStep]);
+
+  // Keep a ref for the auto-start effect (avoids circular deps)
+  const startTourRef = useRef(startTour);
+  useEffect(() => { startTourRef.current = startTour; }, [startTour]);
 
   const nextStep = useCallback(() => {
     const next = stateRef.current.currentStep + 1;

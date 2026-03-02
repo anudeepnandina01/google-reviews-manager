@@ -5,7 +5,6 @@ import { useEffect, useState, ReactNode } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import Sidebar from "./Sidebar";
-import { TourProvider, TourOverlay } from "@/components/tour";
 
 interface User {
   id: string;
@@ -73,27 +72,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <TourProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        {/* Sidebar */}
-        <Sidebar user={user} onSignOut={handleSignOut} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Sidebar */}
+      <Sidebar user={user} onSignOut={handleSignOut} />
 
-        {/* Main Content */}
-        <main
-          className={`
-            min-h-screen transition-all duration-300
-            lg:pl-[280px]
-            pt-16 lg:pt-0
-          `}
-        >
-          <div className="p-4 sm:p-6 lg:p-8">
-            {children}
-          </div>
-        </main>
-
-        {/* Tour Overlay */}
-        <TourOverlay />
-      </div>
-    </TourProvider>
+      {/* Main Content */}
+      <main
+        className={`
+          min-h-screen transition-all duration-300
+          lg:pl-[280px]
+          pt-16 lg:pt-0
+        `}
+      >
+        <div className="p-4 sm:p-6 lg:p-8">
+          {children}
+        </div>
+      </main>
+    </div>
   );
 }
