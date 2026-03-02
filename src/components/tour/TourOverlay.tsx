@@ -11,7 +11,7 @@ interface Rect {
 }
 
 export default function TourOverlay() {
-  const { isActive, currentStep, steps, totalSteps, nextStep, prevStep, skipTour } =
+  const { isActive, isNavigating, currentStep, steps, totalSteps, nextStep, prevStep, skipTour } =
     useTour();
   const [rect, setRect] = useState<Rect | null>(null);
 
@@ -44,56 +44,88 @@ export default function TourOverlay() {
   }, [refresh]);
 
   /* ── nothing to render ──────────────────────────────────────────── */
-  if (!isActive || !steps[currentStep]) return null;
+  if (!isActive) return null;
+
+  /* ── show loading spinner while navigating between pages ────────── */
+  if (isNavigating || !steps[currentStep]) {
+    return (
+      <div className="fixed inset-0 z-[9999]">
+        <div className="fixed inset-0 bg-black/60" />
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10000] flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-white/70 text-sm font-medium">Navigating…</p>
+        </div>
+      </div>
+    );
+  }
 
   const step = steps[currentStep];
   const pos = step.position || "bottom";
   const isFirst = currentStep === 0;
   const isLast = currentStep === totalSteps - 1;
 
-  /* ── tooltip position (fixed, viewport-relative) ────────────────── */
+  /* ── tooltip position (fixed, viewport-clamped) ──────────────────
+     We compute final top/left in pixels so the tooltip never
+     overflows outside the viewport.                                  */
   const gap = 16;
   const tooltipW = 320;
+  const tooltipH = 240; // estimated max height
+  const pad = 12; // min distance from viewport edge
+
+  const clamp = (val: number, min: number, max: number) =>
+    Math.max(min, Math.min(max, val));
 
   const tooltipStyle = (): React.CSSProperties => {
     if (!rect)
       return { top: "50%", left: "50%", transform: "translate(-50%,-50%)" };
 
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let top = 0;
+    let left = 0;
+
     switch (pos) {
       case "right":
-        return {
-          top: rect.top + rect.height / 2,
-          left: rect.left + rect.width + gap,
-          transform: "translateY(-50%)",
-          maxWidth: tooltipW,
-        };
+        top = rect.top + rect.height / 2 - tooltipH / 2;
+        left = rect.left + rect.width + gap;
+        break;
       case "left":
-        return {
-          top: rect.top + rect.height / 2,
-          left: rect.left - gap,
-          transform: "translate(-100%,-50%)",
-          maxWidth: tooltipW,
-        };
+        top = rect.top + rect.height / 2 - tooltipH / 2;
+        left = rect.left - gap - tooltipW;
+        break;
       case "top":
-        return {
-          top: rect.top - gap,
-          left: rect.left + rect.width / 2,
-          transform: "translate(-50%,-100%)",
-          maxWidth: tooltipW,
-        };
+        top = rect.top - gap - tooltipH;
+        left = rect.left + rect.width / 2 - tooltipW / 2;
+        break;
       case "bottom":
       default:
-        return {
-          top: rect.top + rect.height + gap,
-          left: rect.left + rect.width / 2,
-          transform: "translateX(-50%)",
-          maxWidth: tooltipW,
-        };
+        top = rect.top + rect.height + gap;
+        left = rect.left + rect.width / 2 - tooltipW / 2;
+        break;
     }
+
+    // If tooltip doesn't fit on the preferred side, flip it
+    if (pos === "right" && left + tooltipW > vw - pad) {
+      left = rect.left - gap - tooltipW;
+    } else if (pos === "left" && left < pad) {
+      left = rect.left + rect.width + gap;
+    } else if (pos === "top" && top < pad) {
+      top = rect.top + rect.height + gap;
+    } else if (pos === "bottom" && top + tooltipH > vh - pad) {
+      top = rect.top - gap - tooltipH;
+    }
+
+    // Final clamp so it never escapes the viewport
+    top = clamp(top, pad, vh - tooltipH - pad);
+    left = clamp(left, pad, vw - tooltipW - pad);
+
+    return { top, left, width: tooltipW };
   };
 
-  /* ── arrow (inline styles so Tailwind JIT isn't needed) ─────────── */
+  /* ── arrow direction based on actual tooltip vs target position ── */
   const arrowStyle = (): React.CSSProperties => {
+    if (!rect) return { display: "none" };
+
     const base: React.CSSProperties = {
       position: "absolute",
       width: 0,
@@ -101,41 +133,38 @@ export default function TourOverlay() {
       borderWidth: 8,
       borderStyle: "solid",
     };
-    // Arrow points TOWARD the target, so it sits on the side closest to it.
-    switch (pos) {
-      case "right":
-        return {
-          ...base,
-          left: -16,
-          top: "50%",
-          transform: "translateY(-50%)",
-          borderColor: "transparent rgb(30 41 59) transparent transparent",
-        };
-      case "left":
-        return {
-          ...base,
-          right: -16,
-          top: "50%",
-          transform: "translateY(-50%)",
-          borderColor: "transparent transparent transparent rgb(30 41 59)",
-        };
-      case "top":
-        return {
-          ...base,
-          bottom: -16,
-          left: "50%",
-          transform: "translateX(-50%)",
-          borderColor: "rgb(30 41 59) transparent transparent transparent",
-        };
-      case "bottom":
-      default:
-        return {
-          ...base,
-          top: -16,
-          left: "50%",
-          transform: "translateX(-50%)",
-          borderColor: "transparent transparent rgb(30 41 59) transparent",
-        };
+
+    const ts = tooltipStyle();
+    const tTop = typeof ts.top === "number" ? ts.top : 0;
+    const tLeft = typeof ts.left === "number" ? ts.left : 0;
+
+    const targetCX = rect.left + rect.width / 2;
+    const targetCY = rect.top + rect.height / 2;
+
+    // Determine which edge the tooltip is on relative to the target
+    const isToRight = tLeft > rect.left + rect.width / 2;
+    const isToLeft = tLeft + tooltipW < rect.left + rect.width / 2;
+    const isBelow = tTop > rect.top + rect.height / 2;
+
+    if (!isToRight && !isToLeft) {
+      // tooltip is horizontally aligned → arrow top or bottom
+      if (isBelow) {
+        // tooltip below target → arrow on top edge
+        const arrowLeft = clamp(targetCX - tLeft, 20, tooltipW - 20);
+        return { ...base, top: -16, left: arrowLeft, borderColor: "transparent transparent rgb(30 41 59) transparent" };
+      } else {
+        // tooltip above target → arrow on bottom edge
+        const arrowLeft = clamp(targetCX - tLeft, 20, tooltipW - 20);
+        return { ...base, bottom: -16, left: arrowLeft, borderColor: "rgb(30 41 59) transparent transparent transparent" };
+      }
+    } else if (isToRight) {
+      // tooltip is to the right → arrow on left edge pointing left
+      const arrowTop = clamp(targetCY - tTop, 20, tooltipH - 20);
+      return { ...base, left: -16, top: arrowTop, borderColor: "transparent rgb(30 41 59) transparent transparent" };
+    } else {
+      // tooltip is to the left → arrow on right edge pointing right
+      const arrowTop = clamp(targetCY - tTop, 20, tooltipH - 20);
+      return { ...base, right: -16, top: arrowTop, borderColor: "transparent transparent transparent rgb(30 41 59)" };
     }
   };
 
