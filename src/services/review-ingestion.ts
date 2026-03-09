@@ -2,7 +2,7 @@ import axios from "axios";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppNotification } from "./whatsapp";
 import { sendTelegramNotification } from "./telegram";
-import { generateAiReply } from "./ai-reply";
+import { generateAiReply } from "./ai-service";
 
 const GOOGLE_BUSINESS_API_KEY = process.env.GOOGLE_BUSINESS_API_KEY;
 

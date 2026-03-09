@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { saveReplyExample } from "./gemini-ai";
+import { saveReplyExample } from "./ai-service";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -317,7 +317,7 @@ async function handleRegenerate(
 ): Promise<{ success: boolean; message: string }> {
   try {
     // Import dynamically to avoid circular deps
-    const { regenerateAiReply } = await import("./gemini-ai");
+    const { regenerateAiReply } = await import("./ai-service");
 
     await answerCallbackQuery(callbackQueryId, "🔄 Regenerating...");
 
