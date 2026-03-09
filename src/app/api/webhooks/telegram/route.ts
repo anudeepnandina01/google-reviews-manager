@@ -4,12 +4,38 @@ import { prisma } from "@/lib/prisma";
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 /**
+ * Verify Telegram webhook using secret_token header
+ * @see https://core.telegram.org/bots/api#setwebhook (secret_token parameter)
+ */
+function verifyTelegramWebhook(request: NextRequest): boolean {
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("CRITICAL: TELEGRAM_WEBHOOK_SECRET not set in production. Rejecting webhook.");
+      return false;
+    }
+    console.warn("⚠️  DEV: TELEGRAM_WEBHOOK_SECRET not set, skipping verification");
+    return true;
+  }
+
+  const token = request.headers.get("x-telegram-bot-api-secret-token");
+  return token === webhookSecret;
+}
+
+/**
  * POST /api/webhooks/telegram
  * Webhook endpoint for Telegram bot updates
  * This receives messages when users send codes to the bot
  */
 export async function POST(request: NextRequest) {
   try {
+    // Verify webhook authenticity
+    if (!verifyTelegramWebhook(request)) {
+      console.warn("Telegram webhook verification failed");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
     const update = await request.json();
     
     // Handle incoming message

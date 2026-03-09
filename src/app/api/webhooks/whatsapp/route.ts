@@ -1,10 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import axios from "axios";
+import crypto from "crypto";
 
 const WHATSAPP_API_URL = "https://graph.facebook.com/v18.0";
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const ACCESS_TOKEN = process.env.WHATSAPP_BUSINESS_TOKEN;
+
+/**
+ * Verify WhatsApp webhook signature (Meta X-Hub-Signature-256)
+ * @see https://developers.facebook.com/docs/graph-api/webhooks/getting-started#verification-requests
+ */
+function verifyWhatsAppSignature(rawBody: string, signatureHeader: string | null): boolean {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+
+  if (!appSecret) {
+    // In development, warn but allow. In production, reject.
+    if (process.env.NODE_ENV === "production") {
+      console.error("CRITICAL: WHATSAPP_APP_SECRET not set in production. Rejecting webhook.");
+      return false;
+    }
+    console.warn("⚠️  DEV: WHATSAPP_APP_SECRET not set, skipping signature verification");
+    return true;
+  }
+
+  if (!signatureHeader) {
+    console.warn("WhatsApp webhook missing X-Hub-Signature-256 header");
+    return false;
+  }
+
+  const expectedSignature =
+    "sha256=" +
+    crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex");
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signatureHeader),
+      Buffer.from(expectedSignature)
+    );
+  } catch {
+    return false;
+  }
+}
 
 /**
  * POST /api/webhooks/whatsapp
@@ -12,7 +49,16 @@ const ACCESS_TOKEN = process.env.WHATSAPP_BUSINESS_TOKEN;
  */
 export async function POST(request: NextRequest) {
   try {
-    const payload = await request.json();
+    // Read raw body for signature verification, then parse
+    const rawBody = await request.text();
+    const signatureHeader = request.headers.get("x-hub-signature-256");
+
+    if (!verifyWhatsAppSignature(rawBody, signatureHeader)) {
+      console.warn("WhatsApp webhook signature verification failed");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+    }
+
+    const payload = JSON.parse(rawBody);
     console.log("WhatsApp webhook received:", JSON.stringify(payload, null, 2));
 
     // Handle incoming messages

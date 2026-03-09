@@ -1,6 +1,16 @@
 /**
  * Simple in-memory rate limiter
- * For production with multiple instances, use Redis
+ *
+ * ⚠️  SERVERLESS LIMITATION: This rate limiter uses in-memory storage,
+ * which resets on every cold start in serverless environments (Vercel).
+ * Each function instance has its own counter, so limits are per-instance,
+ * NOT global. This still provides some protection against rapid bursts
+ * within a single warm instance.
+ *
+ * For production at scale, replace with:
+ * - Upstash Redis (@upstash/ratelimit) — serverless-native, ~$0.20/100K requests
+ * - Vercel KV (built-in Redis) — if on Vercel Pro plan
+ * - Cloudflare Rate Limiting — if behind Cloudflare
  */
 
 interface RateLimitEntry {

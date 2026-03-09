@@ -75,8 +75,19 @@ export async function verifyFirebaseToken(idToken: string): Promise<{
       };
     }
 
-    // Fallback: Decode JWT without full verification (for development)
-    // In production, always use Firebase Admin SDK with service account
+    // SECURITY: In production, FIREBASE_SERVICE_ACCOUNT_KEY is required.
+    // Never decode tokens without signature verification in production.
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "CRITICAL: FIREBASE_SERVICE_ACCOUNT_KEY is not set in production. " +
+        "Firebase token verification is disabled. Set this env var immediately."
+      );
+      return null;
+    }
+
+    // Development-only fallback: Decode JWT without full verification
+    // WARNING: This is insecure and only acceptable for local development
+    console.warn("⚠️  DEV MODE: Decoding Firebase token WITHOUT signature verification");
     const tokenParts = idToken.split(".");
     if (tokenParts.length !== 3) {
       return null;

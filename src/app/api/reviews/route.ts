@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     const businessId = searchParams.get("businessId");
     const locationId = searchParams.get("locationId");
     const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") || "20")), 100); // Cap at 100
     const skip = (page - 1) * limit;
 
     // Verify business ownership
@@ -43,43 +43,50 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Build query filter
-    const where: any = {};
-    if (businessId) where.businessId = businessId;
+    // Build query filter — always scoped to user's businesses
+    const where: Record<string, unknown> = {};
+
+    if (businessId) {
+      where.businessId = businessId;
+    } else {
+      // SECURITY: Without explicit businessId, scope to user's own businesses
+      const userBusinesses = await prisma.business.findMany({
+        where: { userId: session.userId },
+        select: { id: true },
+      });
+      where.businessId = { in: userBusinesses.map((b: { id: string }) => b.id) };
+    }
+
     if (locationId) where.locationId = locationId;
 
-    // Get reviews
-    const reviews = await prisma.review.findMany({
-      where,
-      include: {
-        aiReply: true,
-        location: true,
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    });
+    // Apply status filter at DB level (not in JS after pagination)
+    const STATUS_MAP: Record<string, string> = {
+      pending: "PENDING_APPROVAL",
+      approved: "APPROVED",
+      sent: "SENT",
+      skipped: "SKIPPED",
+    };
+    if (status && STATUS_MAP[status]) {
+      where.aiReply = { status: STATUS_MAP[status] };
+    }
 
-    // Apply status filter if specified
-    const filtered = reviews.filter((review) => {
-      if (!status) return true;
-
-      if (status === "pending") {
-        return review.aiReply?.status === "PENDING_APPROVAL";
-      } else if (status === "approved") {
-        return review.aiReply?.status === "APPROVED";
-      } else if (status === "sent") {
-        return review.aiReply?.status === "SENT";
-      } else if (status === "skipped") {
-        return review.aiReply?.status === "SKIPPED";
-      }
-      return true;
-    });
-
-    const total = await prisma.review.count({ where });
+    // Get reviews + total count in parallel
+    const [reviews, total] = await Promise.all([
+      prisma.review.findMany({
+        where,
+        include: {
+          aiReply: true,
+          location: true,
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.review.count({ where }),
+    ]);
 
     return NextResponse.json({
-      reviews: filtered,
+      reviews,
       pagination: {
         page,
         limit,
