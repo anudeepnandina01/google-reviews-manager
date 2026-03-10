@@ -56,57 +56,54 @@ export async function POST(
 
       const replyText = customReplyText || review.aiReply.suggestedText;
 
-      // Update AI reply status
-      await prisma.aiReply.update({
-        where: { id: review.aiReply.id },
-        data: {
-          status: AiReplyStatus.APPROVED,
-          sentText: replyText,
-          approvedAt: new Date(),
-        },
-      });
+      // Batch: approve → mark sent → audit log in single transaction
+      await prisma.$transaction([
+        prisma.aiReply.update({
+          where: { id: review.aiReply.id },
+          data: {
+            status: AiReplyStatus.SENT,
+            sentText: replyText,
+            approvedAt: new Date(),
+            sentAt: new Date(),
+          },
+        }),
+        prisma.auditLog.create({
+          data: {
+            event: "REPLY_SENT",
+            entityId: reviewId,
+            details: JSON.stringify({ textLength: replyText.length }),
+          },
+        }),
+      ]);
 
       // TODO: Post reply to Google Business API
       // await postReplyToGoogle(review, replyText);
 
-      // Update status to SENT
-      await prisma.aiReply.update({
-        where: { id: review.aiReply.id },
-        data: {
-          status: AiReplyStatus.SENT,
-          sentAt: new Date(),
-        },
-      });
-
-      // Log event
-      await prisma.auditLog.create({
-        data: {
-          event: "REPLY_SENT",
-          entityId: reviewId,
-          details: JSON.stringify({ textLength: replyText.length }),
-        },
-      });
-
       return NextResponse.json({ success: true, status: "SENT" });
     } else if (action === "skip") {
+      // Batch: skip + audit log in single transaction
+      const txOps = [];
       if (review.aiReply) {
-        await prisma.aiReply.update({
-          where: { id: review.aiReply.id },
-          data: {
-            status: AiReplyStatus.SKIPPED,
-            skippedAt: new Date(),
-          },
-        });
+        txOps.push(
+          prisma.aiReply.update({
+            where: { id: review.aiReply.id },
+            data: {
+              status: AiReplyStatus.SKIPPED,
+              skippedAt: new Date(),
+            },
+          })
+        );
       }
-
-      // Log event
-      await prisma.auditLog.create({
-        data: {
-          event: "REPLY_SKIPPED",
-          entityId: reviewId,
-          details: JSON.stringify({}),
-        },
-      });
+      txOps.push(
+        prisma.auditLog.create({
+          data: {
+            event: "REPLY_SKIPPED",
+            entityId: reviewId,
+            details: JSON.stringify({}),
+          },
+        })
+      );
+      await prisma.$transaction(txOps);
 
       return NextResponse.json({ success: true, status: "SKIPPED" });
     }

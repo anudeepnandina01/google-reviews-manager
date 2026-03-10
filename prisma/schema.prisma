@@ -79,6 +79,9 @@ model User {
   accounts  Account[]
   sessions  Session[]
   businesses Business[]
+
+  @@index([telegramChatId])
+  @@index([whatsappPhone])
 }
 
 // ============ BUSINESS STRUCTURE ============
@@ -170,6 +173,7 @@ model ReplyExample {
 
   @@index([businessId])
   @@index([reviewRating])
+  @@index([businessId, reviewRating])
 }
 
 model Brand {
@@ -231,6 +235,9 @@ model Review {
   @@index([locationId])
   @@index([externalId])
   @@index([source])
+  @@index([businessId, createdAt])
+  @@index([locationId, createdAt])
+  @@index([businessId, rating])
 }
 
 // ============ AI REPLY SYSTEM ============
@@ -314,4 +321,5 @@ model AuditLog {
   @@index([event])
   @@index([entityId])
   @@index([createdAt])
+  @@index([event, createdAt])
 }

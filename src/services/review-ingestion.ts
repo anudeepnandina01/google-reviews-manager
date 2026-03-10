@@ -151,32 +151,32 @@ async function processReview(
       return;
     }
 
-    // Create review record (immutable)
-    const review = await prisma.review.create({
-      data: {
-        externalId: googleReview.name,
-        rating: googleReview.starRating,
-        text: googleReview.reviewText,
-        authorName: googleReview.reviewer.displayName,
-        businessId,
-        locationId: location.id,
-        reviewedAt: new Date(googleReview.publishTime),
-      },
-    });
+    // Create review + audit log in a single transaction
+    const [review] = await prisma.$transaction([
+      prisma.review.create({
+        data: {
+          externalId: googleReview.name,
+          rating: googleReview.starRating,
+          text: googleReview.reviewText,
+          authorName: googleReview.reviewer.displayName,
+          businessId,
+          locationId: location.id,
+          reviewedAt: new Date(googleReview.publishTime),
+        },
+      }),
+      prisma.auditLog.create({
+        data: {
+          event: "REVIEW_CREATED",
+          entityId: "pending", // Will be updated below if needed
+          details: JSON.stringify({
+            rating: googleReview.starRating,
+            location: location.name,
+          }),
+        },
+      }),
+    ]);
 
-    // Log event
-    await prisma.auditLog.create({
-      data: {
-        event: "REVIEW_CREATED",
-        entityId: review.id,
-        details: JSON.stringify({
-          rating: review.rating,
-          location: location.name,
-        }),
-      },
-    });
-
-    // Get owner with notification preferences
+    // Get owner with notification preferences (business already includes user from caller)
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       include: { user: true },
