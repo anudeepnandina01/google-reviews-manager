@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     // Rate limit: 100 requests per minute
     const clientIp = getClientIp(request);
-    const rateLimit = checkRateLimit(`businesses:${clientIp}`, { maxRequests: 100 });
+    const rateLimit = await checkRateLimit(`businesses:${clientIp}`, { maxRequests: 100 });
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limit: 20 creates per minute
     const clientIp = getClientIp(request);
-    const rateLimit = checkRateLimit(`businesses:create:${clientIp}`, { maxRequests: 20 });
+    const rateLimit = await checkRateLimit(`businesses:create:${clientIp}`, { maxRequests: 20 });
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }

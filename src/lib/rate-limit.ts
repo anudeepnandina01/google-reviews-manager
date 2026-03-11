@@ -1,17 +1,57 @@
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
 /**
- * Simple in-memory rate limiter
+ * Distributed rate limiter using Upstash Redis
  *
- * ⚠️  SERVERLESS LIMITATION: This rate limiter uses in-memory storage,
- * which resets on every cold start in serverless environments (Vercel).
- * Each function instance has its own counter, so limits are per-instance,
- * NOT global. This still provides some protection against rapid bursts
- * within a single warm instance.
+ * Works across all serverless instances (Vercel) — global rate limiting.
+ * Falls back to in-memory if Upstash is not configured (dev mode).
  *
- * For production at scale, replace with:
- * - Upstash Redis (@upstash/ratelimit) — serverless-native, ~$0.20/100K requests
- * - Vercel KV (built-in Redis) — if on Vercel Pro plan
- * - Cloudflare Rate Limiting — if behind Cloudflare
+ * Setup:
+ * 1. Create free Upstash account: https://console.upstash.com
+ * 2. Create a Redis database
+ * 3. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in env
  */
+
+// Lazy-init Redis client (null if not configured)
+let redis: Redis | null = null;
+function getRedis(): Redis | null {
+  if (redis) return redis;
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    return redis;
+  }
+  return null;
+}
+
+// Pre-configured rate limiters for different endpoints
+const limiters = new Map<string, Ratelimit>();
+
+function getRateLimiter(prefix: string, maxRequests: number, windowMs: number): Ratelimit | null {
+  const r = getRedis();
+  if (!r) return null;
+
+  const key = `${prefix}:${maxRequests}:${windowMs}`;
+  if (!limiters.has(key)) {
+    limiters.set(
+      key,
+      new Ratelimit({
+        redis: r,
+        prefix: `rl:${prefix}`,
+        limiter: Ratelimit.slidingWindow(maxRequests, `${Math.round(windowMs / 1000)} s`),
+        analytics: true,
+      })
+    );
+  }
+  return limiters.get(key)!;
+}
+
+// ==========================================
+// In-memory fallback (for dev / no Redis)
+// ==========================================
 
 interface RateLimitEntry {
   count: number;
@@ -21,20 +61,48 @@ interface RateLimitEntry {
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 interface RateLimitOptions {
-  windowMs?: number; // Time window in milliseconds
-  maxRequests?: number; // Max requests per window
+  windowMs?: number;
+  maxRequests?: number;
 }
 
 /**
  * Check if a request should be rate limited
- * @returns true if request should be allowed, false if rate limited
+ * Uses Upstash Redis if configured, falls back to in-memory
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   identifier: string,
   options: RateLimitOptions = {}
+): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
+  const { windowMs = 60 * 1000, maxRequests = 60 } = options;
+
+  // Try distributed (Redis) rate limiting first
+  const limiter = getRateLimiter(identifier.split(":")[0] || "api", maxRequests, windowMs);
+  if (limiter) {
+    try {
+      const result = await limiter.limit(identifier);
+      return {
+        allowed: result.success,
+        remaining: result.remaining,
+        resetIn: result.reset - Date.now(),
+      };
+    } catch (error) {
+      // Redis error — fall through to in-memory
+      console.warn("Upstash rate limit error, falling back to in-memory:", error);
+    }
+  }
+
+  // Fallback: in-memory rate limiting
+  return checkRateLimitInMemory(identifier, windowMs, maxRequests);
+}
+
+/**
+ * In-memory rate limiter (fallback for dev or Redis failures)
+ */
+function checkRateLimitInMemory(
+  identifier: string,
+  windowMs: number,
+  maxRequests: number
 ): { allowed: boolean; remaining: number; resetIn: number } {
-  const { windowMs = 60 * 1000, maxRequests = 60 } = options; // Default: 60 requests per minute
-  
   const now = Date.now();
   const entry = rateLimitStore.get(identifier);
 

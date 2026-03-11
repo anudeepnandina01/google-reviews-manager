@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     // Rate limit: 100 requests per minute
     const clientIp = getClientIp(request);
-    const rateLimit = checkRateLimit(`reviews:${clientIp}`, { maxRequests: 100 });
+    const rateLimit = await checkRateLimit(`reviews:${clientIp}`, { maxRequests: 100 });
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
