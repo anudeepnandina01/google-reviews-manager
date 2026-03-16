@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DashboardLayout } from "@/components/layout";
 
 const SAMPLE_REVIEWS = [
   {
@@ -138,6 +139,7 @@ export default function AiPlaygroundPage() {
   };
 
   return (
+    <DashboardLayout>
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
@@ -381,5 +383,6 @@ export default function AiPlaygroundPage() {
         </div>
       )}
     </div>
+    </DashboardLayout>
   );
 }
